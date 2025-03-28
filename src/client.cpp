@@ -11,6 +11,7 @@ static volatile sig_atomic_t interrupt;
 
 void catch_signal(int signal) {
 	interrupt = 1;
+	std::cout << "CTRL + C --> ";
 }
 
 Client::Client(std::unique_ptr<Protocol> protocol)
@@ -65,36 +66,36 @@ void Client::help() {
 int Client::client_run() {
 	signal(SIGINT, catch_signal); // Maybe use sigaction() instead
 	//protocol->to_string();
-	
-	// set stdin to be polled so it doesnt block
-	struct pollfd pfds[1];
+	// Set stdin to be polled so it doesnt block
+	struct pollfd pfds[1] = {};
 	pfds[0].fd = STDIN_FILENO;
 	pfds[0].events = POLLIN;
 
-	while (state != State::END) {
-		std::string input;
+	std::string input = "";
 
+	while (state != State::END && !interrupt) {
 		int ret = poll(pfds, 1, -1);
 
 		if (ret < 0 && errno != EINTR) {
-			std::cerr << "poll error" << std::endl;
+			std::cerr << "error: poll error" << std::endl;
 			return 1;
 		}
 
 		if (pfds[0].revents & POLLIN) {
 			std::getline(std::cin, input);
-		}
-
-		if (std::cin.eof() || interrupt) {
-			std::cout << "CTRL or C/CTRL + D --> bye";
-			break;
-		}
-
-		if(!input.empty()) {
-			auto cmd = get_command(input);
 		
-			if (cmd != nullptr) {
-				cmd->execute(*this);
+			if (std::cin.eof()) {
+				std::cout << "CTRL + D --> ";
+				break;
+			}
+
+			if(!input.empty()) {
+				auto cmd = get_command(input);
+				
+				/* Command is valid */
+				if (cmd != nullptr) {
+					cmd->execute(*this);
+				}
 			}
 		}
 	}

@@ -208,6 +208,16 @@ bool Command::undefined() {
 	return type == Type::UNDEF; 
 }
 
+/* debug function */
+void print_msg(std::string msg) {
+	for (int i = 0; i < msg.length(); ++i) {
+		char c = msg[i];
+		int x = c;
+		std::cout << c << "(" << x << ")";
+	}
+	std::cout << std::endl;
+}
+
 int AuthCommand::execute(Client& client) {
 	Protocol& p = client.get_protocol();
 	MsgFactory& f = p.get_msg_factory();
@@ -216,7 +226,7 @@ int AuthCommand::execute(Client& client) {
 
 	std::string msg = f.create_auth_msg(username, display_name, secret);
 
-	std::cout << msg;
+	print_msg(msg);
 	
 	return 0;
 }
@@ -227,7 +237,7 @@ int JoinCommand::execute(Client& client) {
 
 	std::string msg = f.create_join_msg(channel_id, client.get_name());
 
-	std::cout << msg;
+	print_msg(msg);
 
 	return 0;
 }
@@ -250,6 +260,7 @@ int MsgCommand::execute(Client& client) {
 
 	std::string msg = f.create_chat_msg(client.get_name(), message); 
 
-	std::cout << msg;
+	print_msg(msg);
+
 	return 0;
 }

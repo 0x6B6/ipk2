@@ -6,10 +6,11 @@
 class TCP : public Protocol {
 	public:
 		TCP(Config& config);
-/*		int send() override;
+		~TCP();
+	/*	int send() override;
 		int receive() override;
 		int process() override;
-		~TCP() override;*/
+		*/
 	private:
 		int connect();
 };

@@ -11,6 +11,10 @@ UDP::UDP(Config& config)
 	, timeout{config.udp_timeout} {
 }
 
+UDP::~UDP() {
+	std::cout << "UDP BYE" << std::endl;
+}
+
 int UDP::confirm(uint16_t message_id) {
 	std::cout << MsgType::CONFIRM << message_id;
 	return 0;

@@ -11,7 +11,7 @@
 class Protocol {
 	public:
 		Protocol(Config &config);
-		~Protocol();
+		virtual ~Protocol();
 
 		static std::unique_ptr<Protocol> protocol_setup(Config &config);
 		MsgFactory& get_msg_factory();

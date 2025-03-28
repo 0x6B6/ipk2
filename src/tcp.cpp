@@ -7,6 +7,10 @@
 TCP::TCP(Config& config) : Protocol(config) {
 }
 
+TCP::~TCP() {
+	std::cout << "TCP BYE" << std::endl;
+}
+
 int TCP::connect() {
 	std::cout << "Connecting TCP\n"; 
 
