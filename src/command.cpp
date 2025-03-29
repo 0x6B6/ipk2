@@ -226,7 +226,7 @@ int AuthCommand::execute(Client& client) {
 
 	std::string msg = f.create_auth_msg(username, display_name, secret);
 
-	print_msg(msg);
+	p.send(msg);
 	
 	return 0;
 }
@@ -237,7 +237,7 @@ int JoinCommand::execute(Client& client) {
 
 	std::string msg = f.create_join_msg(channel_id, client.get_name());
 
-	print_msg(msg);
+	p.send(msg);
 
 	return 0;
 }
@@ -260,7 +260,7 @@ int MsgCommand::execute(Client& client) {
 
 	std::string msg = f.create_chat_msg(client.get_name(), message); 
 
-	print_msg(msg);
+	p.send(msg);
 
 	return 0;
 }

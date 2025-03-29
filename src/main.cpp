@@ -1,8 +1,10 @@
 #include <iostream>
 
+#include "error.hpp"
 #include "args.hpp"
 #include "config.hpp"
 #include "client.hpp"
+#include "error.hpp"
 
 int main(int argc, char **argv) {
 	Config config;
@@ -10,7 +12,7 @@ int main(int argc, char **argv) {
 	/* Parse program parameters */
 	if (args_parse(argc, argv, config)) {
 		std::cerr << "error: argument parsing failed" << std::endl;
-		return 1;
+		return PARSE_ERROR;
 	}
 
 	/* Select and setup given protocol */
@@ -18,7 +20,7 @@ int main(int argc, char **argv) {
 
 	if (protocol == nullptr) {
 		std::cerr << "error: protocol setup failed" << std::endl;
-		return 1;
+		return PROTOCOL_ERROR;
 	}
 
 	/* Launch and run client */
@@ -26,7 +28,7 @@ int main(int argc, char **argv) {
 
 	if (client.client_run()) {
 			std::cerr << "error: client runtime" << std::endl;
-			return 1;
+			return CLIENT_ERROR;
 	}
 
 	return 0;

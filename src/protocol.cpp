@@ -12,13 +12,14 @@
 #include <sys/socket.h>
 #include <netdb.h>
 
+#include "error.hpp"
 #include "protocol.hpp"
 #include "config.hpp"
 #include "msg_factory.hpp"
 #include "tcp.hpp"
 #include "udp.hpp"
 
-Protocol::Protocol(Config& config) : protocol_type{config.protocol}, socket_fd{-1}, dyn_port{config.server_port} {
+Protocol::Protocol(Config& config) : protocol_type{config.protocol}, socket_fd{-1}, dyn_port{config.server_port}, client_r{nullptr} {
 	if (protocol_type == Config::Protocol::TCP) {
 		socket_type = SOCK_STREAM;
 	}
@@ -77,6 +78,16 @@ MsgFactory& Protocol::get_msg_factory() {
 	return *msg_factory.get();
 }
 
+int Protocol::bind_client(Client* ptr) {
+	if (ptr == nullptr) {
+		return PROTOCOL_ERROR;
+	}
+
+	client_r = ptr;
+
+	return SUCCESS;
+}
+
 int Protocol::create_socket() {
 	/* Create socket */
 	int fd = socket(AF_INET, socket_type, 0);
@@ -120,6 +131,10 @@ int Protocol::get_address(const char* ip_hname) {
 	return 0;
 }
 
+int Protocol::get_socket() {
+	return socket_fd;
+}
+
 void Protocol::to_string() {
 	std::string prot = protocol_type == Config::Protocol::TCP ? "tcp" : "udp";
 
@@ -127,7 +142,7 @@ void Protocol::to_string() {
 				<< "Transport protocol: " << prot << "\n"
 				<< "Server: " << inet_ntoa(server_address.sin_addr) << ":" << ntohs(server_address.sin_port) << "\n"
 				<< "Dynamic port: " << dyn_port << "\n"
-				<< "Socket file descriptor: " << socket_fd
+				<< "Socket file descriptor: " << socket_fd << "\n"
 				<< "Socket type: " << socket_type
 				<< std::endl;
 }

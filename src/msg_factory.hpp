@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-/* UDP message type */
+/* Message type */
 enum MsgType : uint8_t {
 	CONFIRM,	// UDP only
 	REPLY,		// Server response O 

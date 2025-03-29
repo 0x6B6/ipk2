@@ -6,6 +6,7 @@
 #include <cstdlib>
 #include <csignal>
 #include <poll.h>
+#include <string>
 
 static volatile sig_atomic_t interrupt;
 
@@ -24,6 +25,10 @@ void Client::set_state(State new_state) {
 	state = new_state;
 }
 
+Client::State Client::get_state() {
+	return state;
+}
+
 void Client::set_name(std::string name) {
 	display_name = name;
 }
@@ -34,6 +39,10 @@ std::string Client::get_name() {
 
 Protocol& Client::get_protocol() {
 	return *protocol.get();
+}
+
+void client_error(std::string err) {
+	std::cout << "ERROR: " << err << std::endl;
 }
 
 void Client::help() {
@@ -65,22 +74,46 @@ void Client::help() {
 
 int Client::client_run() {
 	signal(SIGINT, catch_signal); // Maybe use sigaction() instead
-	//protocol->to_string();
-	// Set stdin to be polled so it doesnt block
-	struct pollfd pfds[1] = {};
+	
+	protocol->to_string();
+
+	/* Bind client referrence to protocol */
+	if (protocol->bind_client(this)) {
+		std::cerr << "ERROR: bind_client() unable to get client reference" << std::endl;
+		return 1;
+	}
+
+	/* Connect to server */
+	if (protocol->connect()) {
+		std::cerr << "ERROR: Connection failed" << std::endl;
+		return 1;
+	}
+
+	/* POLLING to avoid BLOCKING */
+	struct pollfd pfds[2] = {};
+	int timeout = -1; // Endless
+
+	/* STDIN */
 	pfds[0].fd = STDIN_FILENO;
 	pfds[0].events = POLLIN;
 
+	/* NETWORK SOCKET */
+	pfds[1].fd = protocol->get_socket();
+	pfds[1].events = POLLIN;
+
 	std::string input = "";
 
+	/* Client core loop */
 	while (state != State::END && !interrupt) {
-		int ret = poll(pfds, 1, -1);
+		int ready = poll(pfds, 2, timeout);
 
-		if (ret < 0 && errno != EINTR) {
+		/* Poll ready and server connection */
+		if (ready < 0 && errno != EINTR) {
 			std::cerr << "error: poll error" << std::endl;
 			return 1;
 		}
 
+		/* STDIN ready */
 		if (pfds[0].revents & POLLIN) {
 			std::getline(std::cin, input);
 		
@@ -97,6 +130,11 @@ int Client::client_run() {
 					cmd->execute(*this);
 				}
 			}
+		}
+
+		/* Socket POLLIN */
+		if (pfds[1].revents & POLLIN) {
+			std::cout << "network receive data" << std::endl;
 		}
 	}
 

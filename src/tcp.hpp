@@ -7,10 +7,11 @@ class TCP : public Protocol {
 	public:
 		TCP(Config& config);
 		~TCP();
-	/*	int send() override;
-		int receive() override;
-		int process() override;
-		*/
-	private:
-		int connect();
+
+		int connect() override;
+		int send(std::string msg) override;
+		int receive(std::string msg) override;
+		int process(std::string msg) override;
+		int error(std::string err) override;
+		int disconnect() override;
 };
