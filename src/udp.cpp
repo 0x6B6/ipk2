@@ -1,6 +1,7 @@
 #include "udp.hpp"
-#include "msg_factory.hpp"
+#include "message.hpp"
 #include "protocol.hpp"
+
 #include <cstdint>
 #include <iostream>
 #include <sys/socket.h>
@@ -17,7 +18,10 @@ UDP::~UDP() {
 	disconnect();
 }
 
-int UDP::connect() {return 0;}
+int UDP::connect() {return 0;} // Empty
+
+int send(std::string msg); // Real send
+int bind_msg_id(uint16_t msg_id); // MessageID
 
 int UDP::send(std::string msg) {
 
@@ -46,7 +50,7 @@ int UDP::receive(std::string msg) {
 
 	int b_rx = recvfrom(socket_fd, buffer, sizeof(buffer), 0, (struct sockaddr *) &src, &addr_len);
 
-	if (b_rx < 0) {
+	if (b_rx <= 0) {
 		std::cerr << "ERROR: UDP recvfrom()" << std::endl;
 		return 1;
 	}

@@ -1,4 +1,5 @@
 #include "msg_factory.hpp"
+#include "message.hpp"
 #include <cstdint>
 
 /* Every TCP message must be followed by CRLF */

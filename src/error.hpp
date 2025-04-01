@@ -1,10 +1,11 @@
 #pragma once
 
-constexpr int SUCCESS = 0;
-constexpr int PARSE_ERROR = 1;
-constexpr int CLIENT_ERROR = 2;
-constexpr int PROTOCOL_ERROR = 3;
-
-constexpr int NETWORK_ERROR = 4;
-constexpr int TIMEOUT_ERROR = 5;
-constexpr int GENERAL_ERROR = 6;
+enum Error : int {
+	SUCCESS = 0,
+	PARSE_ERROR = 10,
+	CLIENT_ERROR = 20,
+	PROTOCOL_ERROR = 30,
+	NETWORK_ERROR = 40,
+	TIMEOUT_ERROR = 50,
+	GENERAL_ERROR = 60
+};

@@ -1,4 +1,5 @@
 #include "command.hpp"
+#include "message.hpp"
 #include "msg_factory.hpp"
 #include "protocol.hpp"
 
@@ -7,61 +8,6 @@
 #include <sstream>
 #include <string>
 #include <cctype>
-
-/* Maximum length of parameters */
-constexpr int MAX_ID_LEN = 20;			// Username - 20 bytes
-constexpr int MAX_CID_LEN = 20;			// Channel ID - 20 bytes
-constexpr int MAX_SECRET_LEN = 128;		// Secret - 128 bytes
-constexpr int MAX_DN_LEN = 20;			// Display name - 20 bytes
-constexpr int MAX_MSG_LEN = 20;			// Message - 60 000 bytes
-
-/**
- *	Input validation helper functions
- */
-bool valid_char(std::string string) {
-	char c;
-
-	for (int i = 0; i < string.length(); ++i) {
-		c = string[i];
-
-		/* Alphanumeric chars, underscore, dash */
-		if (!isalnum(c) && c != '_' && c != '-') {
-			return false;
-		}
-	}
-
-	return true;
-}
-
-bool valid_printable(std::string string) {
-	char c;
-
-	for (int i = 0; i < string.length(); ++i) {
-		c = string[i];
-
-		/* Printable ASCII chars from ! to ~ */
-		if (c < 0x21 || c > 0x7E) {
-			return false;
-		}
-	}
-
-	return true;	
-}
-
-bool valid_printable_msg(std::string string) {
-	char c;
-
-	for (int i = 0; i < string.length(); ++i) {
-		c = string[i];
-
-		/* Printable ASCII chars from ! to ~, space, linefeed */
-		if ((c < 0x20 || c > 0x7E) && c != 0x0A) {
-			return false;
-		}
-	}
-
-	return true;	
-}
 
 bool auth_param_valid(std::string username, std::string secret, std::string display_name) {
 	/* Check if its not empty */
@@ -218,6 +164,7 @@ void print_msg(std::string msg) {
 	std::cout << std::endl;
 }
 
+/* /auth command */
 int AuthCommand::execute(Client& client) {
 	Protocol& p = client.get_protocol();
 	MsgFactory& f = p.get_msg_factory();
@@ -227,10 +174,13 @@ int AuthCommand::execute(Client& client) {
 	std::string msg = f.create_auth_msg(username, display_name, secret);
 
 	p.send(msg);
+
+	// receive & error
 	
 	return 0;
 }
 
+/* /join command */
 int JoinCommand::execute(Client& client) {
 	Protocol& p = client.get_protocol();
 	MsgFactory& f = p.get_msg_factory();
@@ -239,21 +189,26 @@ int JoinCommand::execute(Client& client) {
 
 	p.send(msg);
 
+	// receive & error
+
 	return 0;
 }
 
+/* /rename command */
 int RenameCommand::execute(Client& client) {
 	client.set_name(display_name);
 
 	return 0;
 }
 
+/* /help command */
 int HelpCommand::execute(Client& client) {
 	client.help();
 
 	return 0;
 }
 
+/* standard chat message */
 int MsgCommand::execute(Client& client) {
 	Protocol& p = client.get_protocol();
 	MsgFactory& f = p.get_msg_factory();

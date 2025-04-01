@@ -98,13 +98,13 @@ int Protocol::create_socket() {
 	}
 
 	/* Set Non-blocking Network I/O */
-	int flags = fcntl(fd, F_GETFL, 0);
+/*	int flags = fcntl(fd, F_GETFL, 0);
 
 	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
 		close(fd);
 		std::cerr << "error: socket()" << std::endl;
 		return -1;
-	}
+	}*/
 
 	socket_fd  = fd;
 

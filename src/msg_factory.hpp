@@ -1,19 +1,6 @@
 #pragma once
 
-#include <cstdint>
 #include <string>
-
-/* Message type */
-enum MsgType : uint8_t {
-	CONFIRM,	// UDP only
-	REPLY,		// Server response O 
-	AUTH,		// Request message
-	JOIN,		// Request message
-	MSG,		// Client chat message
-	PING,		// UDP only, server query message
-	ERR,		// Two-way communication error
-	BYE			// Two-way communication
-};
 
 class MsgFactory {
 	public:

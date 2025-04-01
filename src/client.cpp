@@ -1,5 +1,6 @@
 #include "client.hpp"
 #include "command.hpp"
+#include "error.hpp"
 
 #include <iostream>
 #include <iomanip>
@@ -75,7 +76,7 @@ void Client::help() {
 int Client::client_run() {
 	signal(SIGINT, catch_signal); // Maybe use sigaction() instead
 	
-	protocol->to_string();
+	//protocol->to_string();
 
 	/* Bind client referrence to protocol */
 	if (protocol->bind_client(this)) {
@@ -86,7 +87,7 @@ int Client::client_run() {
 	/* Connect to server */
 	if (protocol->connect()) {
 		std::cerr << "ERROR: Connection failed" << std::endl;
-		return 1;
+		return PROTOCOL_ERROR;
 	}
 
 	/* POLLING to avoid BLOCKING */
@@ -110,7 +111,7 @@ int Client::client_run() {
 		/* Poll ready and server connection */
 		if (ready < 0 && errno != EINTR) {
 			std::cerr << "error: poll error" << std::endl;
-			return 1;
+			return CLIENT_ERROR;
 		}
 
 		/* STDIN ready */
@@ -135,8 +136,11 @@ int Client::client_run() {
 		/* Socket POLLIN */
 		if (pfds[1].revents & POLLIN) {
 			std::cout << "network receive data" << std::endl;
+			
 		}
 	}
+
+	// Move disconnect here
 
 	return 0;
 }

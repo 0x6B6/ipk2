@@ -1,9 +1,12 @@
 #include "tcp.hpp"
+#include "message.hpp"
 #include "protocol.hpp"
 
+#include <asm-generic/socket.h>
 #include <cerrno>
 #include <cstdint>
 #include <iostream>
+#include <sstream>
 #include <sys/socket.h>
 
 TCP::TCP(Config& config) : Protocol(config) {
@@ -18,7 +21,7 @@ TCP::~TCP() {
 int TCP::connect() {
 	std::cout << "Connecting TCP\n";
 	
-	if (::connect(socket_fd, (struct sockaddr *) &server_address, sizeof(server_address)) != 0 && errno != EINPROGRESS) {
+	if (::connect(socket_fd, (struct sockaddr *) &server_address, sizeof(server_address)) != 0/* && errno != EINPROGRESS*/) {
 		std::cerr << "ERROR: TCP connect()" << std::endl;
 		exit(1);
 		return 1;
@@ -46,15 +49,67 @@ int TCP::receive(std::string msg) {
 
 	int b_rx = recv(socket_fd, buffer, sizeof(buffer), 0);
 
-	if (b_rx < 0) {
+	if (b_rx <= 0) {
 		std::cerr << "ERROR: TCP recv()" << std::endl;
 		return 1;
 	}
 
-	return process(msg);
+	return 0;
 }
 
 int TCP::process(std::string msg) {
+	std::istringstream msgs(msg); // message string stream
+	std::string msg_type, component, content;
+
+	msgs >> msg_type;
+
+	std::cout << msg << std::endl;
+
+	/* ERR FROM {DisplayName} IS {MessageContent}\r\n */
+	if (msg_type == "ERR") {
+		msgs >> component;
+
+		if (component != "FROM") {
+			return 1;
+		}
+
+		msgs >> component;
+
+		if (component.empty() || valid_printable(component) == false) {
+			return 1;
+		}
+
+		content = "ERROR FROM " + component + ":";
+
+		msgs >> component;
+
+		if (component != "IS") {
+			return 1;
+		}
+
+		msgs >> component;
+
+		if (component.empty()) {
+			return 1;
+		}
+	}
+	/* REPLY {"OK"|"NOK"} IS {MessageContent}\r\n */
+	else if (msg_type == "REPLY") {
+		std::cout << "REPLY message";
+	}
+	/* MSG FROM {DisplayName} IS {MessageContent}\r\n */
+	else if (msg_type == "MSG") {
+		std::cout << "MSG message";
+	}
+	/* BYE FROM {DisplayName}\r\n */
+	else if (msg_type == "BYE") {
+		std::cout << "BYE message";
+	}
+	else {
+		std::cerr << "error: invalid messsage" << std::endl;
+		return 1;
+	}
+
 	return 0;
 }
 
