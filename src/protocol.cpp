@@ -1,3 +1,11 @@
+#include "error.hpp"
+#include "protocol.hpp"
+#include "config.hpp"
+#include "message.hpp"
+#include "msg_factory.hpp"
+#include "tcp.hpp"
+#include "udp.hpp"
+
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
@@ -11,13 +19,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
-
-#include "error.hpp"
-#include "protocol.hpp"
-#include "config.hpp"
-#include "msg_factory.hpp"
-#include "tcp.hpp"
-#include "udp.hpp"
+#include <poll.h>
 
 Protocol::Protocol(Config& config) : protocol_type{config.protocol}, socket_fd{-1}, dyn_port{config.server_port}, client_r{nullptr} {
 	if (protocol_type == Config::Protocol::TCP) {
@@ -97,15 +99,6 @@ int Protocol::create_socket() {
 		return -1;
 	}
 
-	/* Set Non-blocking Network I/O */
-/*	int flags = fcntl(fd, F_GETFL, 0);
-
-	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
-		close(fd);
-		std::cerr << "error: socket()" << std::endl;
-		return -1;
-	}*/
-
 	socket_fd  = fd;
 
 	return 0;
@@ -145,4 +138,47 @@ void Protocol::to_string() {
 				<< "Socket file descriptor: " << socket_fd << "\n"
 				<< "Socket type: " << socket_type
 				<< std::endl;
+}
+
+int Protocol::await_response(int expected, Response& response) {
+	char buffer[2048] = {};
+	struct pollfd pfd = {socket_fd, POLLIN, 0};
+	std::cout << "await" << std::endl;
+
+	while (true) {
+		int ready = poll(&pfd, 1, Protocol::timeout);
+
+		if (ready < 0 && errno != EINTR) {
+			std::cerr << "ERROR: poll error" << std::endl;
+			return NETWORK_ERROR;
+		}
+
+		if (ready == 0) {
+			std::cerr << "ERROR: Reply TIMEOUT_ERROR" << std::endl;
+			return TIMEOUT_ERROR;
+		}
+
+		if (pfd.revents & POLLIN) {
+			if (receive(buffer) || process(std::string(buffer), response)) {
+				std::cerr << "receive or process fail" << std::endl;
+				return 1;
+			}
+			std::cerr << "[" << buffer << "]" << std::endl;
+			if (response.type == expected) {
+				break;
+			}
+
+			if (response.type == MSG) {
+				std::cout << response.content << std::endl;
+			}
+
+			if (response.type == ERR) {
+				std::cout << response.content << std::endl;
+				return SERVER_ERROR;
+			}
+
+		}
+	}
+
+	return SUCCESS;
 }

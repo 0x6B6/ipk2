@@ -11,9 +11,7 @@ class Client {
 	public:
 		enum class State {
 			START,
-			AUTH,
 			OPEN,
-			JOIN,
 			END
 		};
 

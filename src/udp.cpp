@@ -10,11 +10,11 @@ UDP::UDP(Config& config)
 	: Protocol(config)
 	, message_id{0}
 	, retransmission{config.udp_retransmission}
-	, timeout{config.udp_timeout} {
+	, udp_timeout{config.udp_timeout} {
 }
 
 UDP::~UDP() {
-	std::cout << "UDP BYE" << std::endl;
+	std::cerr << "UDP BYE" << std::endl;
 	disconnect();
 }
 
@@ -40,15 +40,15 @@ int UDP::send(std::string msg) {
 	return 0;
 }
 
-int UDP::receive(std::string msg) {
+int UDP::receive(char* buffer) {
 	//recvfrom()
-
-	uint8_t buffer[2048];
 
 	struct sockaddr_in src {};
 	socklen_t addr_len;
 
-	int b_rx = recvfrom(socket_fd, buffer, sizeof(buffer), 0, (struct sockaddr *) &src, &addr_len);
+	int b_rx = recvfrom(socket_fd, buffer, 2048, 0, (struct sockaddr *) &src, &addr_len);
+
+	// dynamic port and ip verify
 
 	if (b_rx <= 0) {
 		std::cerr << "ERROR: UDP recvfrom()" << std::endl;
@@ -58,7 +58,7 @@ int UDP::receive(std::string msg) {
 	return 0;
 }
 
-int UDP::process(std::string msg) {
+int UDP::process(std::string msg, Response& response) {
 	// switch case
 	return 0;
 }

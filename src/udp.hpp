@@ -11,14 +11,14 @@ class UDP : public Protocol {
 
 		int connect() override;
 		int send(std::string msg) override;
-		int receive(std::string msg) override;
-		int process(std::string msg) override;
+		int receive(char* buffer) override;
+		int process(std::string msg, Response& response) override;
 		int error(std::string err) override;
 		int disconnect() override;
 
 	private:
 		uint16_t message_id;
-		uint16_t timeout;
+		uint16_t udp_timeout;
 		uint8_t retransmission;
 
 		void assign_message_id(uint16_t message_id);

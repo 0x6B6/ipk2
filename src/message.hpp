@@ -15,10 +15,18 @@ enum MsgType : uint8_t {
 	BYE			// Two-way communication
 };
 
+/* Response status type */
+enum ResponseStatus : uint8_t {
+	NONE,	// Reply has no status
+	OK,		// OK
+	NOK 	// NOT OK
+};
+
 /* Response message container struct */
 struct Response {
-	MsgType type;
-	std::string content;
+	MsgType type;			// Message type
+	ResponseStatus status;	// Response status, if it has any
+	std::string content;	// Formated content of the message
 };
 
 /* Maximum length of parameters */

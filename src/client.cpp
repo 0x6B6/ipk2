@@ -1,6 +1,7 @@
 #include "client.hpp"
 #include "command.hpp"
 #include "error.hpp"
+#include "message.hpp"
 
 #include <iostream>
 #include <iomanip>
@@ -42,8 +43,12 @@ Protocol& Client::get_protocol() {
 	return *protocol.get();
 }
 
-void client_error(std::string err) {
+void Client::client_error(std::string err) {
 	std::cout << "ERROR: " << err << std::endl;
+}
+
+void Client::client_output(std::string msg) {
+	std::cout << msg << std::endl;
 }
 
 void Client::help() {
@@ -69,14 +74,12 @@ void Client::help() {
 				<< "Changes display name.\n"
 				<< std::setw(cmd_w) << "/help"
 				<< std::setw(param_w) << "None"
-				<< "Prints this help message with command description.\n"
+				<< "Prints this help message with command description."
 				<<std::endl;
 }
 
 int Client::client_run() {
 	signal(SIGINT, catch_signal); // Maybe use sigaction() instead
-	
-	//protocol->to_string();
 
 	/* Bind client referrence to protocol */
 	if (protocol->bind_client(this)) {
@@ -127,21 +130,46 @@ int Client::client_run() {
 				auto cmd = get_command(input);
 				
 				/* Command is valid */
-				if (cmd != nullptr) {
-					cmd->execute(*this);
+				if (cmd == nullptr) {
+					continue;
+				}
+
+				if (cmd->execute(*this)) {
+					std::cout << "ERROR: client_run()";
+					return 1;
 				}
 			}
 		}
 
 		/* Socket POLLIN */
 		if (pfds[1].revents & POLLIN) {
-			std::cout << "network receive data" << std::endl;
-			
+			std::cout << "network: main loop received data" << std::endl;
+			char buffer[2048];
+			Response response;
+
+			if (protocol->receive(buffer) || protocol->process(std::string (buffer), response)) {
+				return 1;
+			}
+
+			switch (response.type) {
+				case MSG:
+					client_output(response.content);
+					break;
+
+				case BYE:
+					set_state(State::END);
+					break;
+
+				case ERR:
+					client_error(response.content);
+					return 1;
+					break;
+
+				default: // Ping
+					break;
+			}
 		}
 	}
 
-	// Move disconnect here
-
 	return 0;
 }
-

@@ -1,4 +1,5 @@
 #include "command.hpp"
+#include "client.hpp"
 #include "message.hpp"
 #include "msg_factory.hpp"
 #include "protocol.hpp"
@@ -33,9 +34,9 @@ bool join_param_valid(std::string channel_id) {
 		return false;
 	}
 
-	if (valid_char(channel_id) == false) {
+/*	if (valid_char(channel_id) == false) {
 		return false;
-	}
+	}*/
 
 	if (channel_id.length() > MAX_CID_LEN) {
 		return false;
@@ -168,14 +169,32 @@ void print_msg(std::string msg) {
 int AuthCommand::execute(Client& client) {
 	Protocol& p = client.get_protocol();
 	MsgFactory& f = p.get_msg_factory();
+	Response response = {};
 
-	client.set_name(display_name);
+	if (client.get_state() != Client::State::OPEN) {
+		client.set_name(display_name);
 
-	std::string msg = f.create_auth_msg(username, display_name, secret);
+		std::string msg = f.create_auth_msg(username, display_name, secret);
 
-	p.send(msg);
+		if (p.send(msg)) {
+			return 1;
+		}
 
-	// receive & error
+		// receive & error
+		if (p.await_response(MsgType::REPLY, response)) {
+			client.client_error("Invalid message, format or response timeout");
+			return 1;
+		}
+
+		client.client_output(response.content);
+
+		if (response.status == OK) {
+			client.set_state(Client::State::OPEN);
+		}
+	}
+	else {
+		client.client_output("ERROR: Already authenthicated.");
+	}
 	
 	return 0;
 }
@@ -184,12 +203,26 @@ int AuthCommand::execute(Client& client) {
 int JoinCommand::execute(Client& client) {
 	Protocol& p = client.get_protocol();
 	MsgFactory& f = p.get_msg_factory();
+	Response response = {};
 
-	std::string msg = f.create_join_msg(channel_id, client.get_name());
+	if (client.get_state() == Client::State::OPEN) {
+		std::string msg = f.create_join_msg(channel_id, client.get_name());
 
-	p.send(msg);
+		if (p.send(msg)) {
+			return 1;
+		}
 
-	// receive & error
+		// receive & error
+		if (p.await_response(MsgType::REPLY, response)) {
+			client.client_error("Invalid message, format or response timeout");
+			return 1;
+		}
+
+		client.client_output(response.content);
+	}
+	else {
+		client.client_output("ERROR: Authentication required to join a channel.");
+	}
 
 	return 0;
 }
@@ -213,9 +246,16 @@ int MsgCommand::execute(Client& client) {
 	Protocol& p = client.get_protocol();
 	MsgFactory& f = p.get_msg_factory();
 
-	std::string msg = f.create_chat_msg(client.get_name(), message); 
+	if (client.get_state() == Client::State::OPEN) {
+		std::string msg = f.create_chat_msg(client.get_name(), message); 
 
-	p.send(msg);
+		if (p.send(msg)) {
+			return 1;
+		}
+	}
+	else {
+		client.client_output("ERROR: Authentication required to send chat messages.");
+	}
 
 	return 0;
 }
