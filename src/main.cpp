@@ -6,12 +6,18 @@
 #include "client.hpp"
 #include "error.hpp"
 
+/* TODO:
+ * /exit
+ * /style
+ * /clear
+ */
+
 int main(int argc, char **argv) {
 	Config config;
 
 	/* Parse program parameters */
 	if (args_parse(argc, argv, config)) {
-		std::cerr << "error: argument parsing failed" << std::endl;
+		local_error("Argument parsing failed");
 		return PARSE_ERROR;
 	}
 
@@ -19,7 +25,7 @@ int main(int argc, char **argv) {
 	auto protocol = Protocol::protocol_setup(config);
 
 	if (protocol == nullptr) {
-		std::cerr << "error: protocol setup failed" << std::endl;
+		local_error("Protocol setup failed");
 		return PROTOCOL_ERROR;
 	}
 
@@ -27,7 +33,7 @@ int main(int argc, char **argv) {
 	Client client(std::move(protocol));
 
 	if (client.client_run()) {
-			std::cerr << "error: client runtime" << std::endl;
+			local_error("Client runtime");
 			return CLIENT_ERROR;
 	}
 

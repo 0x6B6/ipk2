@@ -1,10 +1,11 @@
-#include "error.hpp"
 #include "protocol.hpp"
+#include "tcp.hpp"
+#include "udp.hpp"
+#include "error.hpp"
+#include "signal.hpp"
 #include "config.hpp"
 #include "message.hpp"
 #include "msg_factory.hpp"
-#include "tcp.hpp"
-#include "udp.hpp"
 
 #include <cstdlib>
 #include <cstring>
@@ -21,7 +22,8 @@
 #include <netdb.h>
 #include <poll.h>
 
-Protocol::Protocol(Config& config) : protocol_type{config.protocol}, socket_fd{-1}, dyn_port{config.server_port}, client_r{nullptr} {
+Protocol::Protocol(Config& config) : protocol_type{config.protocol}, socket_fd{-1}, dyn_port{config.server_port},
+	client_r{nullptr}, b_rx{0} {
 	if (protocol_type == Config::Protocol::TCP) {
 		socket_type = SOCK_STREAM;
 	}
@@ -29,7 +31,9 @@ Protocol::Protocol(Config& config) : protocol_type{config.protocol}, socket_fd{-
 		socket_type = SOCK_DGRAM;
 	}
 
+	processed_msg_id = -1;
 	std::memset(&server_address, 0, sizeof(server_address));
+	std::memset(buffer, 0, sizeof(buffer));
 }
 
 Protocol::~Protocol() {
@@ -54,22 +58,22 @@ std::unique_ptr<Protocol> Protocol::protocol_setup(Config& config) {
 
 			case Config::Protocol::UND:
 			default:
-				std::cerr << "error: undefined transport protocol type" << std::endl;
+				local_error("Undefined transport protocol type");
 				return nullptr;
 				break;
 		}
 	} catch (const std::exception& e) {
-		std::cerr << "error: caught memory exception - " << e.what() << std::endl;
+		local_error(std::string("Caught memory exception - ") + e.what());
 		return nullptr;
 	}
 
 	if (protocol->create_socket() != 0) {
-		std::cerr << "error: failed to create a socket" << std::endl;
+		local_error("Failed to create a socket");
 		return nullptr;
 	}
 
 	if (protocol->get_address(config.ip_hostname) != 0) {
-		std::cerr << "error: failed to retrieve server address" << std::endl;
+		local_error("Failed to retrieve server address");
 		return nullptr;
 	}
 
@@ -80,14 +84,8 @@ MsgFactory& Protocol::get_msg_factory() {
 	return *msg_factory.get();
 }
 
-int Protocol::bind_client(Client* ptr) {
-	if (ptr == nullptr) {
-		return PROTOCOL_ERROR;
-	}
-
+void Protocol::bind_client(Client* ptr) {
 	client_r = ptr;
-
-	return SUCCESS;
 }
 
 int Protocol::create_socket() {
@@ -95,7 +93,16 @@ int Protocol::create_socket() {
 	int fd = socket(AF_INET, socket_type, 0);
 
 	if (fd < 0) {
-		std::cerr << "error: socket()" << std::endl;
+		local_error("socket()");
+		return -1;
+	}
+
+	/* Set Non-blocking Network I/O */
+	int flags = fcntl(fd, F_GETFL, 0);
+
+	if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) {
+		close(fd);
+		local_error(" socket()");
 		return -1;
 	}
 
@@ -113,7 +120,7 @@ int Protocol::get_address(const char* ip_hname) {
 
 	/* Get address information */
 	if (getaddrinfo(ip_hname, std::to_string(dyn_port).c_str(), &hints, &addrinfo) != 0) {
-		std::cerr << "error: Unable to get host (" << ip_hname << ") address information" << std::endl;
+		local_error(std::string("Unable to get host (") + std::string(ip_hname) + ") address information");
 		return 1;
 	}
 
@@ -140,30 +147,35 @@ void Protocol::to_string() {
 				<< std::endl;
 }
 
-int Protocol::await_response(int expected, Response& response) {
-	char buffer[2048] = {};
+int Protocol::await_response(uint16_t timeout, int expected, Response& response) {
 	struct pollfd pfd = {socket_fd, POLLIN, 0};
-	std::cout << "await" << std::endl;
+	
+	log("await");
 
-	while (true) {
-		int ready = poll(&pfd, 1, Protocol::timeout);
+	while (!interrupt) {
+		int ready = poll(&pfd, 1, timeout);
 
 		if (ready < 0 && errno != EINTR) {
-			std::cerr << "ERROR: poll error" << std::endl;
+			local_error("poll error");
 			return NETWORK_ERROR;
 		}
 
 		if (ready == 0) {
-			std::cerr << "ERROR: Reply TIMEOUT_ERROR" << std::endl;
+			local_error("TIMEOUT_ERROR");
 			return TIMEOUT_ERROR;
 		}
 
 		if (pfd.revents & POLLIN) {
-			if (receive(buffer) || process(std::string(buffer), response)) {
-				std::cerr << "receive or process fail" << std::endl;
-				return 1;
+			/* TODO rewrite */
+			if (receive() || process(response)) {
+				local_error("Message could not be received or processed");
+				return PROTOCOL_ERROR;
 			}
-			std::cerr << "[" << buffer << "]" << std::endl;
+
+			if (response.duplicate) {
+				continue;
+			}
+
 			if (response.type == expected) {
 				break;
 			}
@@ -176,9 +188,10 @@ int Protocol::await_response(int expected, Response& response) {
 				std::cout << response.content << std::endl;
 				return SERVER_ERROR;
 			}
-
 		}
 	}
+
+	log("Await successful");
 
 	return SUCCESS;
 }

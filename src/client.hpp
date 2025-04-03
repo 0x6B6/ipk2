@@ -12,7 +12,9 @@ class Client {
 		enum class State {
 			START,
 			OPEN,
-			END
+			AWAITING,
+			END,
+			ERR
 		};
 
 		/* Client */
@@ -21,7 +23,6 @@ class Client {
 
 		/* Client info */
 		void client_output(std::string msg);
-		void client_error(std::string err);
 		void help();
 
 		/* Client state */

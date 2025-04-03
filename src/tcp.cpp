@@ -11,20 +11,20 @@
 #include <string>
 #include <sys/socket.h>
 
-TCP::TCP(Config& config) : Protocol(config) {
-}
+TCP::TCP(Config& config) : Protocol(config) {}
 
 TCP::~TCP() {
-	std::cerr << "TCP BYE" << std::endl;
+	log("TCP BYE");
+	
 	disconnect();
 	shutdown(socket_fd, SHUT_RDWR); // ???
 }
 
 int TCP::connect() {
-	std::cerr << "Connecting TCP"  << std::endl;
+	log("Connecting TCP");
 	
-	if (::connect(socket_fd, (struct sockaddr *) &server_address, sizeof(server_address)) != 0) {
-		std::cerr << "ERROR: TCP connect()" << std::endl;
+	if (::connect(socket_fd, (struct sockaddr *) &server_address, sizeof(server_address)) != 0 && errno != EINPROGRESS) {
+		local_error("TCP connect()");
 		exit(1);
 		return 1;
 	}
@@ -33,25 +33,25 @@ int TCP::connect() {
 }
 
 int TCP::send(std::string msg) {
-	std::cerr << "Sending TCP"  << std::endl;
+	log("Sending TCP");
 
 	int b_tx = ::send(socket_fd, msg.c_str(), msg.length(), 0);
 
 	if (b_tx < 0) {
-		std::cerr << "ERROR: TCP send()" << std::endl;
+		local_error("TCP send()");
 		return 1;
 	}
 
 	return 0;
 }
 
-int TCP::receive(char* buffer) {
-	std::cerr << "Receiving TCP" << std::endl;
+int TCP::receive() {
+	log("Receiving TCP");
 
 	int b_rx = recv(socket_fd, buffer, 2048, 0);
 
 	if (b_rx <= 0) {
-		std::cerr << "ERROR: TCP recv()" << std::endl;
+		local_error("TCP receive()");
 		return 1;
 	}
 
@@ -68,14 +68,15 @@ int get_msg_content(std::istringstream& msgs, std::string& msg_content) {
 	}
 
 	if (msg_content.empty() || valid_printable_msg(msg_content) == false) {
-		std::cerr << "msg content" << std::endl;
+		local_error("Message contains invalid characters");
 		return 1;
 	}
 
 	return 0;
 }
 
-int TCP::process(std::string msg, Response& response) {
+int TCP::process(Response& response) {
+	std::string msg(buffer);
 	std::istringstream msgs(msg);					// message string stream
 	std::string msg_type, component;				// Message type & tokens
 	std::string dname, status, msg_content, error;	// Message content
@@ -111,9 +112,6 @@ int TCP::process(std::string msg, Response& response) {
 	}
 	/* REPLY {"OK"|"NOK"} IS {MessageContent}\r\n */
 	else if (msg_type == "REPLY") {
-
-		std::cerr << msg << std::endl;
-
 		msgs >> status; // OK | NOK
 
 		msgs >> component; // IS
@@ -150,6 +148,10 @@ int TCP::process(std::string msg, Response& response) {
 
 		msgs >> dname;
 
+		if (dname.empty() || valid_printable(dname) == false) {
+			return 1;
+		}
+
 		msgs >> component;
 
 		if (component != "IS") {
@@ -165,10 +167,23 @@ int TCP::process(std::string msg, Response& response) {
 	}
 	/* BYE FROM {DisplayName}\r\n */
 	else if (msg_type == "BYE") {
+
+		msgs >> component;
+
+		if (component != "FROM") {
+			return 1;
+		}
+
+		msgs >> dname;
+
+		if (dname.empty() || valid_printable(dname) == false) {
+			return 1;
+		}
+
 		response.type = MsgType::BYE;
 	}
 	else {
-		std::cerr << "ERROR: malformed messsage" << std::endl;
+		local_error("Invalid TCP server messsage");
 		return MESSAGE_ERROR;
 	}
 
@@ -177,7 +192,7 @@ int TCP::process(std::string msg, Response& response) {
 
 int TCP::error(std::string error) {
 	/* Client side error */
-	if (send(msg_factory->create_err_msg(client_r->get_name(), error))) {
+	if (send(error)) {
 		return 1;
 	}
 

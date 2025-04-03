@@ -2,6 +2,7 @@
 #include "command.hpp"
 #include "error.hpp"
 #include "message.hpp"
+#include "signal.hpp"
 
 #include <iostream>
 #include <iomanip>
@@ -9,19 +10,12 @@
 #include <csignal>
 #include <poll.h>
 #include <string>
-
-static volatile sig_atomic_t interrupt;
-
-void catch_signal(int signal) {
-	interrupt = 1;
-	std::cout << "CTRL + C --> ";
-}
+#include <unistd.h>
 
 Client::Client(std::unique_ptr<Protocol> protocol)
 	: state {Client::State::START}
 	, display_name{"Display_Name"}
-	, protocol{std::move(protocol)} {
-}
+	, protocol{std::move(protocol)} {}
 
 void Client::set_state(State new_state) {
 	state = new_state;
@@ -41,10 +35,6 @@ std::string Client::get_name() {
 
 Protocol& Client::get_protocol() {
 	return *protocol.get();
-}
-
-void Client::client_error(std::string err) {
-	std::cout << "ERROR: " << err << std::endl;
 }
 
 void Client::client_output(std::string msg) {
@@ -79,41 +69,35 @@ void Client::help() {
 }
 
 int Client::client_run() {
-	signal(SIGINT, catch_signal); // Maybe use sigaction() instead
+	/* SIGINT signal catch */
+	if (set_signal()) {
+		return CLIENT_ERROR;
+	}
 
 	/* Bind client referrence to protocol */
-	if (protocol->bind_client(this)) {
-		std::cerr << "ERROR: bind_client() unable to get client reference" << std::endl;
-		return 1;
-	}
+	protocol->bind_client(this);
 
 	/* Connect to server */
 	if (protocol->connect()) {
-		std::cerr << "ERROR: Connection failed" << std::endl;
+		local_error("Connection failed");
 		return PROTOCOL_ERROR;
 	}
 
 	/* POLLING to avoid BLOCKING */
-	struct pollfd pfds[2] = {};
+	struct pollfd pfds[2] = {{STDIN_FILENO, POLLIN, 0}, {protocol->get_socket(), POLLIN, 0}};
 	int timeout = -1; // Endless
 
-	/* STDIN */
-	pfds[0].fd = STDIN_FILENO;
-	pfds[0].events = POLLIN;
-
-	/* NETWORK SOCKET */
-	pfds[1].fd = protocol->get_socket();
-	pfds[1].events = POLLIN;
-
+	/* STDIN & network response */
 	std::string input = "";
+	Response response;
 
 	/* Client core loop */
-	while (state != State::END && !interrupt) {
+	while (state != State::END && state != State::ERR && !interrupt) {
 		int ready = poll(pfds, 2, timeout);
 
 		/* Poll ready and server connection */
 		if (ready < 0 && errno != EINTR) {
-			std::cerr << "error: poll error" << std::endl;
+			local_error("poll failure");
 			return CLIENT_ERROR;
 		}
 
@@ -122,33 +106,33 @@ int Client::client_run() {
 			std::getline(std::cin, input);
 		
 			if (std::cin.eof()) {
-				std::cout << "CTRL + D --> ";
-				break;
+				log("CTRL + D --> ");
+				set_state(State::END);
 			}
 
 			if(!input.empty()) {
 				auto cmd = get_command(input);
 				
-				/* Command is valid */
+				/* Command is invalid, skip */
 				if (cmd == nullptr) {
 					continue;
 				}
 
+				/* Execute command routine */
 				if (cmd->execute(*this)) {
-					std::cout << "ERROR: client_run()";
-					return 1;
+					local_error("command-action unsuccessful");
+					return CLIENT_ERROR;
 				}
 			}
 		}
 
 		/* Socket POLLIN */
 		if (pfds[1].revents & POLLIN) {
-			std::cout << "network: main loop received data" << std::endl;
-			char buffer[2048];
-			Response response;
+			log("network: main loop received data");
 
-			if (protocol->receive(buffer) || protocol->process(std::string (buffer), response)) {
-				return 1;
+			if (protocol->receive() || protocol->process(response)) {
+				local_error("Message could not be received or processed");
+				return CLIENT_ERROR;
 			}
 
 			switch (response.type) {
@@ -161,15 +145,19 @@ int Client::client_run() {
 					break;
 
 				case ERR:
-					client_error(response.content);
-					return 1;
+					client_output(response.content);
+					set_state(State::ERR);
 					break;
 
-				default: // Ping
+				default: // Ping, etc. --> skip
 					break;
 			}
 		}
 	}
 
-	return 0;
+	if (state == State::ERR) {
+		return CLIENT_ERROR;
+	}
+
+	return SUCCESS;
 }

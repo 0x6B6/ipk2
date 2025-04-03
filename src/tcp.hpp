@@ -10,8 +10,8 @@ class TCP : public Protocol {
 
 		int connect() override;
 		int send(std::string msg) override;
-		int receive(char* buffer) override;
-		int process(std::string msg, Response& response) override;
+		int receive() override;
+		int process(Response& response) override;
 		int error(std::string err) override;
 		int disconnect() override;
 };

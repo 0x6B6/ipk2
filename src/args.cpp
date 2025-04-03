@@ -7,6 +7,7 @@
 
 #include "args.hpp"
 #include "config.hpp"
+#include "error.hpp"
 
 char* get_arg(int argc, char** argv, int idx) {
 	if (idx + 1 >= argc) {
@@ -20,7 +21,7 @@ int to_int(char *arg) {
 	int value;
 
 	if (arg == nullptr) {
-		std::cerr << "error: missing argument" << std::endl;
+		local_error("Missing argument");
 		exit(EXIT_FAILURE);
 	}
 
@@ -84,7 +85,7 @@ int args_parse(int argc, char** argv, Config& config) {
 	using namespace std;
 
 	if (argc < 2) {
-		cerr << "error: invalid number of parameters" << endl;
+		local_error("Invalid number of parameters");
 		return 1;
 	}
 
@@ -109,7 +110,7 @@ int args_parse(int argc, char** argv, Config& config) {
 					value = to_int(arg);
 
 					if (in_range(value, UINT16_MAX) == -1) {
-						cerr << "error: invalid argument range " << arg << endl;
+						local_error(string("Invalid argument range ") + arg);
 						return 1;
 					}
 
@@ -120,7 +121,7 @@ int args_parse(int argc, char** argv, Config& config) {
 					value = to_int(arg);
 
 					if (in_range(value, UINT16_MAX) == -1) {
-						cerr << "error: invalid argument range " << arg << endl;
+						local_error(string("Invalid argument range ") + arg);
 						return 1;
 					}
 
@@ -131,7 +132,7 @@ int args_parse(int argc, char** argv, Config& config) {
 					value = to_int(arg);
 
 					if (in_range(value, UINT8_MAX) == -1) {
-						cerr << "error: invalid argument range " << arg << endl;
+						local_error(string("Invalid argument range ") + arg);
 						return 1;
 					}
 
@@ -143,24 +144,24 @@ int args_parse(int argc, char** argv, Config& config) {
 					break;
 
 				default:
-					cerr << "error: invalid parameter " << param << endl;
+					local_error(string("Invalid parameter ") + param);
 					break;
 			}
 			++i;
 		}
 		else {
-			cerr << "error: invalid parameter " << param << endl;
+			local_error(string("Invalid parameter ") + param);
 			return 1;
 		}
 	}
 
 	if (config.protocol == Config::Protocol::UND) {
-		cerr << "error: invalid protocol" << endl;
+		local_error("Invalid protocol");
 		return 1;
 	}
 
 	if (config.ip_hostname == nullptr) {
-		cerr << "error: invalid server IPv4 address/hostname" << endl;
+		local_error("Invalid server IPv4 address/hostname");
 		return 1;
 	}
 

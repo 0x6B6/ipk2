@@ -10,9 +10,10 @@ enum MsgType : uint8_t {
 	AUTH,		// Request message
 	JOIN,		// Request message
 	MSG,		// Client chat message
-	PING,		// UDP only, server query message
-	ERR,		// Two-way communication error
-	BYE			// Two-way communication
+	ERR = 0xFE,		// Two-way communication error
+	BYE = 0xFF,		// Two-way communication
+	PING = 0xFD,	// UDP only, server query message
+	UNKNOWN = 101
 };
 
 /* Response status type */
@@ -27,6 +28,7 @@ struct Response {
 	MsgType type;			// Message type
 	ResponseStatus status;	// Response status, if it has any
 	std::string content;	// Formated content of the message
+	bool duplicate;			// Flag for duplicate message
 };
 
 /* Maximum length of parameters */
