@@ -170,7 +170,7 @@ int AuthCommand::execute(Client& client) {
 	Protocol& p = client.get_protocol();
 	MsgFactory& f = p.get_msg_factory();
 	Response response = {};
-	log("AuthCommand()");
+
 	if (client.get_state() != Client::State::OPEN) {
 		client.set_name(display_name);
 
@@ -178,14 +178,12 @@ int AuthCommand::execute(Client& client) {
 			local_error("send() - Unable to reach server");	
 			return NETWORK_ERROR;
 		}
-
+		//log("Reply await");
 		if (p.await_response(5000, MsgType::REPLY, response)) {
 			local_error("Invalid message, format or response timeout");
 			p.error(f.create_err_msg(client.get_name(), "Invalid message, format or response timeout"));
 			return PROTOCOL_ERROR;
 		}
-
-		log("REPLY SUCCESFUL");
 
 		client.client_output(response.content);
 
@@ -196,7 +194,7 @@ int AuthCommand::execute(Client& client) {
 	else {
 		local_error("Already authenthicated");
 	}
-	log("AuthCommand() SUCCESS");
+
 	return EXIT_SUCCESS;
 }
 
@@ -245,7 +243,7 @@ int HelpCommand::execute(Client& client) {
 int MsgCommand::execute(Client& client) {
 	Protocol& p = client.get_protocol();
 	MsgFactory& f = p.get_msg_factory();
-	log("MsgCommand()");
+
 	if (client.get_state() == Client::State::OPEN) {
 		if (p.send(f.create_chat_msg(client.get_name(), message))) {
 			local_error("send() - Unable to reach server");	
@@ -255,6 +253,6 @@ int MsgCommand::execute(Client& client) {
 	else {
 		local_error("Authentication required to send chat messages");
 	}
-	log("MsgCommand Success");
+
 	return EXIT_SUCCESS;
 }

@@ -13,16 +13,12 @@
 
 TCP::TCP(Config& config) : Protocol(config) {}
 
-TCP::~TCP() {
-	log("TCP BYE");
-	
+TCP::~TCP() {	
 	disconnect();
 	shutdown(socket_fd, SHUT_RDWR); // ???
 }
 
-int TCP::connect() {
-	log("Connecting TCP");
-	
+int TCP::connect() {	
 	if (::connect(socket_fd, (struct sockaddr *) &server_address, sizeof(server_address)) != 0 && errno != EINPROGRESS) {
 		local_error("TCP connect()");
 		exit(1);
@@ -33,8 +29,6 @@ int TCP::connect() {
 }
 
 int TCP::send(std::string msg) {
-	log("Sending TCP");
-
 	int b_tx = ::send(socket_fd, msg.c_str(), msg.length(), 0);
 
 	if (b_tx < 0) {
@@ -46,8 +40,6 @@ int TCP::send(std::string msg) {
 }
 
 int TCP::receive() {
-	log("Receiving TCP");
-
 	int b_rx = recv(socket_fd, buffer, 2048, 0);
 
 	if (b_rx <= 0) {
@@ -201,7 +193,7 @@ int TCP::error(std::string error) {
 
 int TCP::disconnect() {
 	/* Disconnect only when when communication has started */
-	if (client_r->get_state() == Client::State::OPEN) {
+	if (client_r->get_state() != Client::State::START) {
 		if (send(msg_factory->create_bye_msg(client_r->get_name()))) {
 			return 1;
 		}

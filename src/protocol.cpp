@@ -150,8 +150,6 @@ void Protocol::to_string() {
 int Protocol::await_response(uint16_t timeout, int expected, Response& response) {
 	struct pollfd pfd = {socket_fd, POLLIN, 0};
 	
-	log("await");
-
 	while (!interrupt) {
 		int ready = poll(&pfd, 1, timeout);
 
@@ -168,7 +166,7 @@ int Protocol::await_response(uint16_t timeout, int expected, Response& response)
 		if (pfd.revents & POLLIN) {
 			/* TODO rewrite */
 			if (receive() || process(response)) {
-				local_error("Message could not be received or processed");
+				local_error("Await: Message could not be received or processed");
 				return PROTOCOL_ERROR;
 			}
 
@@ -190,8 +188,6 @@ int Protocol::await_response(uint16_t timeout, int expected, Response& response)
 			}
 		}
 	}
-
-	log("Await successful");
 
 	return SUCCESS;
 }

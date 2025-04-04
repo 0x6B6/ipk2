@@ -106,7 +106,6 @@ int Client::client_run() {
 			std::getline(std::cin, input);
 		
 			if (std::cin.eof()) {
-				log("CTRL + D --> ");
 				set_state(State::END);
 			}
 

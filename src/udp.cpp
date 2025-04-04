@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <netinet/in.h>
 #include <string>
 #include <sys/socket.h>
 
@@ -16,13 +17,13 @@ UDP::UDP(Config& config)
 	, udp_timeout{config.udp_timeout} {}
 
 UDP::~UDP() {
-	log("[UDP] BYE");
+	//log("[UDP] BYE");
 	disconnect();
 }
 
 /* Empty, UDP has no connection */
 int UDP::connect() { 
-	log("[UDP] connect()");
+	//log("[UDP] connect()");
 	return SUCCESS; 
 }
 
@@ -60,7 +61,7 @@ int UDP::send(std::string msg) {
 		}
 
 		if ((await_result = await_response(udp_timeout, MsgType::CONFIRM, response)) == SUCCESS) {
-			log("[UDP] confirmed");
+			//log("[UDP] confirmed");
 			break;
 		}
 
@@ -78,13 +79,14 @@ int UDP::send(std::string msg) {
 /* UDP receive */
 int UDP::receive() {
 	struct sockaddr_in src {};
-	socklen_t addr_len;
+	socklen_t addr_len = sizeof(struct sockaddr_in);
 
 	b_rx = recvfrom(socket_fd, buffer, 2048, 0, (struct sockaddr *) &src, &addr_len);
 
 	/* Verify IP address */
 	if (memcmp(&server_address.sin_addr, &src.sin_addr, sizeof(struct in_addr)) != 0) {
 		local_error("[UDP] received packet from wrong IPv4 address");
+		std::cerr << (int)  server_address.sin_addr.s_addr << " - " << (int) src.sin_addr.s_addr << std::endl;
 		return ADDRESS_ERROR;
 	}
 
@@ -96,7 +98,7 @@ int UDP::receive() {
 		return 1;
 	}
 
-	log("Bytes rx: " + std::to_string(b_rx));
+	//log("Bytes rx: " + std::to_string(b_rx));
 
 	return 0;
 }
@@ -138,9 +140,6 @@ int UDP::process(Response& response) {
 	uint16_t ref_message_id, server_msg_id;
 	std::string msg_content;
 
-	log("[UDP] processing server message");
-	for (int i = 0; i < b_rx; ++i) std::cout << "[" << buffer[i] << (int) buffer[i] << "] "; std::cout << std::endl;
-
 	/* Minimum response size of 3 bytes */
 	if (b_rx < 3) {
 		local_error("UDP message integrity");
@@ -150,8 +149,6 @@ int UDP::process(Response& response) {
 	msg_type = buffer[0];
 	server_msg_id = get_msg_id(buffer + 1);
 
-	log("Proccessed_msg_id: " + std::to_string(processed_msg_id) + " Server_msg_id: " + std::to_string(server_msg_id));
-
 	/* Confirm message arrival */
 	if (msg_type != CONFIRM) {
 		if (confirm(server_msg_id)) {
@@ -160,7 +157,7 @@ int UDP::process(Response& response) {
 		/* This message has already been processed */
 		if (server_msg_id <= processed_msg_id) {
 			response.duplicate = true;
-			log("Duplicate detected");
+			//log("Duplicate detected");
 			return SUCCESS;
 		}
 
@@ -168,7 +165,7 @@ int UDP::process(Response& response) {
 	}
 
 	switch (msg_type) {
-		case CONFIRM: { log("CONFIRM");
+		case CONFIRM: { //log("CONFIRM");
 			ref_message_id = get_msg_id(buffer + 1);
 
 			if (ref_message_id != message_id) {
@@ -180,7 +177,7 @@ int UDP::process(Response& response) {
 			break;
 		}
 
-		case REPLY: { log("REPLY");
+		case REPLY: { //log("REPLY");
 			int result = buffer[3];
 			ref_message_id = get_msg_id(buffer + 4);
 
@@ -199,7 +196,7 @@ int UDP::process(Response& response) {
 			break;
 		}
 
-		case MSG: { log("MSG");
+		case MSG: { //log("MSG");
 			if (get_msg_content(buffer + 3, msg_content)) {
 				return MESSAGE_ERROR;
 			}
@@ -209,7 +206,7 @@ int UDP::process(Response& response) {
 			break;
 		}
 
-		case ERR: { log("ERR");
+		case ERR: { //log("ERR");
 			if (get_msg_content(buffer + 3, msg_content)) {
 				return MESSAGE_ERROR;
 			}
@@ -219,24 +216,22 @@ int UDP::process(Response& response) {
 			break;
 		}
 
-		case BYE: { log("BYE");
+		case BYE: { //log("BYE");
 			response.type = BYE;
 			break;
 		}
 
-		case PING: { log("PING");
+		case PING: { //log("PING");
 			response.type = PING;
 			break;
 		}
 
-		default: { log("INVALID MESSAGE TYPE");
+		default: { //log("INVALID MESSAGE TYPE");
 			local_error("Invalid UDP server message: " + std::to_string(msg_type));
 			response.type = UNKNOWN;
 			break;
 		}
 	}
-
-	log("[UDP] succesfuly processed message");
 
 	return SUCCESS;
 }
@@ -247,8 +242,6 @@ int UDP::error(std::string error) {
 		return PROTOCOL_ERROR;
 	}
 
-	log("[UDP] error()");
-
 	return SUCCESS;
 }
 
@@ -258,8 +251,6 @@ int UDP::disconnect() {
 		if (send(msg_factory->create_bye_msg(client_r->get_name()))) {
 			return PROTOCOL_ERROR;
 		}
-
-		log("[UDP] disconnect()");
 	}
 
 	return SUCCESS;
@@ -271,13 +262,9 @@ int UDP::confirm(uint16_t message_id) {
 
 	bind_msg_id(confirm_msg, message_id);
 
-	for (int i = 0; i < confirm_msg.length(); ++i) std::cout << "[" << (int) confirm_msg[i] << "] ";
-
 	if (direct_send(confirm_msg)) {
 		return PROTOCOL_ERROR;
 	}
-
-	log("[UDP] sending confirm()");
 
 	return SUCCESS;
 }
