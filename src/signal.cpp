@@ -7,7 +7,7 @@ volatile sig_atomic_t interrupt;
 
 void catch_signal(int signal) {
 	interrupt = 1;
-	log("CTRL + C --> ");
+	//log("CTRL + C --> ");
 }
 
 /* SIGINT catch setup

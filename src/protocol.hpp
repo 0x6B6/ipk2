@@ -1,14 +1,15 @@
 #pragma once
 
-#include <cstdint>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <memory>
-
 #include "client.hpp"
 #include "config.hpp"
 #include "message.hpp"
 #include "msg_factory.hpp"
+
+#include <cstdint>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <memory>
+#include <queue>
 
 class Client; // declaration forwarding
 
@@ -65,4 +66,5 @@ class Protocol {
 
 		/* Other */
 		int processed_msg_id;
+		std::queue<Response> MessageQueue;
 };

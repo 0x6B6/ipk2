@@ -125,9 +125,10 @@ int Client::client_run() {
 			}
 		}
 
+		/* TODO process queue */
 		/* Socket POLLIN */
 		if (pfds[1].revents & POLLIN) {
-			log("network: main loop received data");
+			//log("network: main loop received data");
 
 			if (protocol->receive() || protocol->process(response)) {
 				local_error("Message could not be received or processed");

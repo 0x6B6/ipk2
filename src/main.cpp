@@ -1,5 +1,3 @@
-#include <iostream>
-
 #include "error.hpp"
 #include "args.hpp"
 #include "config.hpp"
@@ -7,6 +5,8 @@
 #include "error.hpp"
 
 /* TODO:
+ * incomming message queue
+ * Proper ERR messages sending 
  * /exit
  * /style
  * /clear

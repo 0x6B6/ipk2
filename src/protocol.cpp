@@ -178,6 +178,7 @@ int Protocol::await_response(uint16_t timeout, int expected, Response& response)
 				break;
 			}
 
+			/* TODO: Push these and rest to queue */
 			if (response.type == MSG) {
 				std::cout << response.content << std::endl;
 			}
