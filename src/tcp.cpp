@@ -13,9 +13,8 @@
 
 TCP::TCP(Config& config) : Protocol(config) {}
 
-TCP::~TCP() {	
-	disconnect();
-	shutdown(socket_fd, SHUT_RDWR); // ???
+TCP::~TCP() {
+	shutdown(socket_fd, SHUT_RDWR);
 }
 
 int TCP::connect() {	
@@ -183,7 +182,6 @@ int TCP::process(Response& response) {
 }
 
 int TCP::error(std::string error) {
-	/* Client side error */
 	if (send(error)) {
 		return 1;
 	}
@@ -191,12 +189,9 @@ int TCP::error(std::string error) {
 	return 0;
 }
 
-int TCP::disconnect() {
-	/* Disconnect only when when communication has started */
-	if (client_r->get_state() != Client::State::START) {
-		if (send(msg_factory->create_bye_msg(client_r->get_name()))) {
-			return 1;
-		}
+int TCP::disconnect(std::string id) {
+	if (send(msg_factory->create_bye_msg(id))) {
+		return 1;
 	}
 
 	return 0;

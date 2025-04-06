@@ -42,7 +42,7 @@ class Protocol {
 		virtual int receive() = 0;
 		virtual int process(Response& response) = 0;
 		virtual int error(std::string err) = 0;
-		virtual int disconnect() = 0;
+		virtual int disconnect(std::string id) = 0;
 
 	protected:
 		/* Type of used protocol */

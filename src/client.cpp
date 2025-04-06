@@ -135,7 +135,7 @@ int Client::client_run() {
 	MsgFactory& factory = protocol->get_msg_factory();
 
 	/* Client core loop */
-	while (state != State::END && state != State::ERR && !interrupt) {
+	while (state != State::END && state != State::ERR && !terminate) {
 		int ready = poll(pfds, 2, timeout);
 
 		/* Poll ready and server connection */
@@ -149,6 +149,7 @@ int Client::client_run() {
 			std::getline(std::cin, input);
 		
 			if (std::cin.eof()) {
+				terminate = 1;
 				set_state(State::END);
 			}
 
@@ -185,7 +186,12 @@ int Client::client_run() {
 		}
 	}
 
-	/* Move disconnect logic here */
+	/* Disconnect logic here */
+	if (terminate) {
+		if (protocol->disconnect(get_name())) {
+			return CLIENT_ERROR;
+		}
+	}
 
 	return SUCCESS;
 }

@@ -18,7 +18,6 @@ UDP::UDP(Config& config)
 
 UDP::~UDP() {
 	//log("[UDP] BYE");
-	disconnect();
 }
 
 /* Empty, UDP has no connection */
@@ -246,11 +245,9 @@ int UDP::error(std::string error) {
 }
 
 /* UDP bye */
-int UDP::disconnect() {
-	if (client_r->get_state() != Client::State::START) {
-		if (send(msg_factory->create_bye_msg(client_r->get_name()))) {
-			return PROTOCOL_ERROR;
-		}
+int UDP::disconnect(std::string id) {
+	if (send(msg_factory->create_bye_msg(id))) {
+		return PROTOCOL_ERROR;
 	}
 
 	return SUCCESS;

@@ -13,5 +13,5 @@ class TCP : public Protocol {
 		int receive() override;
 		int process(Response& response) override;
 		int error(std::string err) override;
-		int disconnect() override;
+		int disconnect(std::string id) override;
 };

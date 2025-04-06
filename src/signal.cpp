@@ -3,10 +3,10 @@
 
 #include <csignal>
 
-volatile sig_atomic_t interrupt;
+volatile sig_atomic_t terminate;
 
 void catch_signal(int signal) {
-	interrupt = 1;
+	terminate = 1;
 	//log("CTRL + C --> ");
 }
 
