@@ -6,7 +6,8 @@
 
 /* TODO:
  * incomming message queue
- * Proper ERR messages sending 
+ * Proper ERR messages sending
+ * Message length? 
  * /exit
  * /style
  * /clear

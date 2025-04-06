@@ -10,9 +10,9 @@ enum MsgType : uint8_t {
 	AUTH,		// Request message
 	JOIN,		// Request message
 	MSG,		// Client chat message
+	PING = 0xFD,	// UDP only, server query message
 	ERR = 0xFE,		// Two-way communication error
 	BYE = 0xFF,		// Two-way communication
-	PING = 0xFD,	// UDP only, server query message
 	UNKNOWN = 101
 };
 

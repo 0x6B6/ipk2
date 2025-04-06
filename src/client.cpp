@@ -2,6 +2,7 @@
 #include "command.hpp"
 #include "error.hpp"
 #include "message.hpp"
+#include "msg_factory.hpp"
 #include "signal.hpp"
 
 #include <iostream>
@@ -68,6 +69,48 @@ void Client::help() {
 				<<std::endl;
 }
 
+/* TODO FIX: REPLY IN ORDER */
+void Client::process_msg(Response& response) { 
+	switch (response.type) {
+		case MSG: {
+			client_output(response.content);
+			break;
+		}
+
+		case ERR: {
+			client_output(response.content);
+			set_state(State::ERR);
+			break;
+		}
+
+		case BYE: {
+			set_state(State::END);
+			break;
+		}
+
+		default: // Ping, etc. --> skip
+			break;
+	}
+}
+
+void Client::process_msg_queue() {
+	auto& msg_queue = protocol->get_msg_queue();
+
+	while (!msg_queue.empty()) {
+		//log("Processing msg queue");
+		Response response = msg_queue.front();
+
+		if (response.type == REPLY) {
+			client_output(response.content);
+		}
+		else {
+			process_msg(response);
+		} 
+
+		msg_queue.pop();
+	}
+}
+
 int Client::client_run() {
 	/* SIGINT signal catch */
 	if (set_signal()) {
@@ -87,9 +130,9 @@ int Client::client_run() {
 	struct pollfd pfds[2] = {{STDIN_FILENO, POLLIN, 0}, {protocol->get_socket(), POLLIN, 0}};
 	int timeout = -1; // Endless
 
-	/* STDIN & network response */
 	std::string input = "";
 	Response response;
+	MsgFactory& factory = protocol->get_msg_factory();
 
 	/* Client core loop */
 	while (state != State::END && state != State::ERR && !interrupt) {
@@ -97,11 +140,11 @@ int Client::client_run() {
 
 		/* Poll ready and server connection */
 		if (ready < 0 && errno != EINTR) {
-			local_error("poll failure");
+			local_error("poll() failure");
 			return CLIENT_ERROR;
 		}
 
-		/* STDIN ready */
+		/* STDIN ready --> Command */
 		if (pfds[0].revents & POLLIN) {
 			std::getline(std::cin, input);
 		
@@ -125,39 +168,24 @@ int Client::client_run() {
 			}
 		}
 
-		/* TODO process queue */
+		/* Proccess message queue after finishing command */
+		process_msg_queue();
+
 		/* Socket POLLIN */
 		if (pfds[1].revents & POLLIN) {
-			//log("network: main loop received data");
-
 			if (protocol->receive() || protocol->process(response)) {
 				local_error("Message could not be received or processed");
+
+				protocol->error(factory.create_err_msg(get_name(), "Received a malformed message from the server"));
+
 				return CLIENT_ERROR;
 			}
 
-			switch (response.type) {
-				case MSG:
-					client_output(response.content);
-					break;
-
-				case BYE:
-					set_state(State::END);
-					break;
-
-				case ERR:
-					client_output(response.content);
-					set_state(State::ERR);
-					break;
-
-				default: // Ping, etc. --> skip
-					break;
-			}
+			process_msg(response);
 		}
 	}
 
-	if (state == State::ERR) {
-		return CLIENT_ERROR;
-	}
+	/* Move disconnect logic here */
 
 	return SUCCESS;
 }

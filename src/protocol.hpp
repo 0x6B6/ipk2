@@ -23,13 +23,16 @@ class Protocol {
 		
 		/* Protocol utilities */
 		Protocol(Config &config);
+		void bind_client(Client* client);
 		MsgFactory& get_msg_factory();
 		int create_socket();
-		int get_socket();
-		int get_address(const char* ip_hname);
-		void bind_client(Client* client);
 		void to_string();
-		int process_server_msg();
+		int get_socket();
+		std::queue<Response>& get_msg_queue();
+		int get_address(const char* ip_hname);
+
+
+		/* Protocol AWAIT response method in request states */
 		int await_response(uint16_t timeout, int expected, Response& response);
 
 		/* Virtual methods, implemented by concrete protocols */
@@ -66,5 +69,5 @@ class Protocol {
 
 		/* Other */
 		int processed_msg_id;
-		std::queue<Response> MessageQueue;
+		std::queue<Response> msg_queue;
 };

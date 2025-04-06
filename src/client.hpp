@@ -4,6 +4,7 @@
 #include <string>
 
 #include "protocol.hpp"
+#include "message.hpp"
 
 class Protocol;
 
@@ -43,4 +44,6 @@ class Client {
 
 		/* IPK25 & Transport protocol */
 		std::unique_ptr<Protocol> protocol;
+		void process_msg(Response& response);
+		void process_msg_queue();
 };

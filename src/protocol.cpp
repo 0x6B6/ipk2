@@ -2,7 +2,6 @@
 #include "tcp.hpp"
 #include "udp.hpp"
 #include "error.hpp"
-#include "signal.hpp"
 #include "config.hpp"
 #include "message.hpp"
 #include "msg_factory.hpp"
@@ -84,6 +83,10 @@ MsgFactory& Protocol::get_msg_factory() {
 	return *msg_factory.get();
 }
 
+std::queue<Response>& Protocol::get_msg_queue() {
+	return msg_queue;
+}
+
 void Protocol::bind_client(Client* ptr) {
 	client_r = ptr;
 }
@@ -150,42 +153,39 @@ void Protocol::to_string() {
 int Protocol::await_response(uint16_t timeout, int expected, Response& response) {
 	struct pollfd pfd = {socket_fd, POLLIN, 0};
 	
-	while (!interrupt) {
+	while (true) {
 		int ready = poll(&pfd, 1, timeout);
 
 		if (ready < 0 && errno != EINTR) {
-			local_error("poll error");
+			local_error("poll() failure");
 			return NETWORK_ERROR;
 		}
 
 		if (ready == 0) {
-			local_error("TIMEOUT_ERROR");
 			return TIMEOUT_ERROR;
 		}
 
 		if (pfd.revents & POLLIN) {
-			/* TODO rewrite */
 			if (receive() || process(response)) {
 				local_error("Await: Message could not be received or processed");
 				return PROTOCOL_ERROR;
 			}
 
+			/* Duplicate msg --> skip */
 			if (response.duplicate) {
 				continue;
 			}
 
+			msg_queue.push(response);
+
+			/* Response successfuly arrived */
 			if (response.type == expected) {
 				break;
 			}
 
-			/* TODO: Push these and rest to queue */
-			if (response.type == MSG) {
-				std::cout << response.content << std::endl;
-			}
-
-			if (response.type == ERR) {
-				std::cout << response.content << std::endl;
-				return SERVER_ERROR;
+			/* If message requires it, gracefuly exit */
+			if (response.type == ERR || response.type == BYE) {
+				break;
 			}
 		}
 	}

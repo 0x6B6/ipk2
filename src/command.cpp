@@ -165,11 +165,11 @@ void print_msg(std::string msg) {
 	std::cout << std::endl;
 }
 
-/* /auth command */
+/* AUTH /auth command */
 int AuthCommand::execute(Client& client) {
 	Protocol& p = client.get_protocol();
 	MsgFactory& f = p.get_msg_factory();
-	Response response = {};
+	Response response = {.type = UNKNOWN, .status = NONE, .duplicate = false};
 
 	if (client.get_state() != Client::State::OPEN) {
 		client.set_name(display_name);
@@ -178,18 +178,17 @@ int AuthCommand::execute(Client& client) {
 			local_error("send() - Unable to reach server");	
 			return NETWORK_ERROR;
 		}
-		//log("Reply await");
+
 		if (p.await_response(5000, MsgType::REPLY, response)) {
 			local_error("Invalid message, format or response timeout");
-			p.error(f.create_err_msg(client.get_name(), "Invalid message, format or response timeout"));
+			p.error(f.create_err_msg(client.get_name(), "Malformed message or response timeout"));
 			return PROTOCOL_ERROR;
 		}
-
-		client.client_output(response.content);
 
 		if (response.status == OK) {
 			client.set_state(Client::State::OPEN);
 		}
+		
 	}
 	else {
 		local_error("Already authenthicated");
@@ -198,11 +197,11 @@ int AuthCommand::execute(Client& client) {
 	return EXIT_SUCCESS;
 }
 
-/* /join command */
+/* JOIN /join command */
 int JoinCommand::execute(Client& client) {
 	Protocol& p = client.get_protocol();
 	MsgFactory& f = p.get_msg_factory();
-	Response response = {};
+	Response response = {.type = UNKNOWN, .status = NONE, .duplicate = false};
 
 	if (client.get_state() == Client::State::OPEN) {
 		if (p.send(f.create_join_msg(channel_id, client.get_name()))) {
@@ -211,12 +210,10 @@ int JoinCommand::execute(Client& client) {
 		}
 
 		if (p.await_response(5000, MsgType::REPLY, response)) {
-			local_error("Invalid message, format, server error or response timeout");
-			p.error(f.create_err_msg(client.get_name(), "Invalid message, format or response timeout"));
+			local_error("Invalid message, format or response timeout");
+			p.error(f.create_err_msg(client.get_name(), "Malformed message or response timeout"));
 			return PROTOCOL_ERROR;
 		}
-
-		client.client_output(response.content);
 	}
 	else {
 		local_error("Authentication required to join a channel.");
@@ -225,21 +222,21 @@ int JoinCommand::execute(Client& client) {
 	return EXIT_SUCCESS;
 }
 
-/* /rename command */
+/* RENAME /rename command */
 int RenameCommand::execute(Client& client) {
 	client.set_name(display_name);
 
 	return EXIT_SUCCESS;
 }
 
-/* /help command */
+/* HELP /help command */
 int HelpCommand::execute(Client& client) {
 	client.help();
 	
 	return EXIT_SUCCESS;
 }
 
-/* standard chat message */
+/* MSG standard chat message */
 int MsgCommand::execute(Client& client) {
 	Protocol& p = client.get_protocol();
 	MsgFactory& f = p.get_msg_factory();
