@@ -67,7 +67,6 @@ class Protocol {
 		char buffer[2048];
 		int b_rx;
 
-		/* Other */
-		int processed_msg_id;
+		/* Message queue */
 		std::queue<Response> msg_queue;
 };

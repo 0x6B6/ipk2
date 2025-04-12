@@ -182,19 +182,17 @@ int AuthCommand::execute(Client& client) {
 
 		if (p.send(f.create_auth_msg(username, display_name, secret))) {
 			local_error("send() - Unable to reach server");	
+			
 			return NETWORK_ERROR;
 		}
 
 		if (p.await_response(5000, MsgType::REPLY, response)) {
 			local_error("Invalid message, format or response timeout");
+			
 			p.error(f.create_err_msg(client.get_name(), "Malformed message or response timeout"));
+			
 			return PROTOCOL_ERROR;
 		}
-
-		if (response.status == OK) {
-			client.set_state(Client::State::OPEN);
-		}
-		
 	}
 	else {
 		local_error("Already authenthicated");

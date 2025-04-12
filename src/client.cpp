@@ -15,7 +15,7 @@
 
 Client::Client(std::unique_ptr<Protocol> protocol)
 	: state {Client::State::START}
-	, display_name{"Display_Name"}
+	, display_name{"unknown"}
 	, protocol{std::move(protocol)} {}
 
 void Client::set_state(State new_state) {
@@ -69,7 +69,6 @@ void Client::help() {
 				<<std::endl;
 }
 
-/* TODO FIX: REPLY IN ORDER */
 void Client::process_msg(Response& response) { 
 	switch (response.type) {
 		case MSG: {
@@ -97,11 +96,14 @@ void Client::process_msg_queue() {
 	auto& msg_queue = protocol->get_msg_queue();
 
 	while (!msg_queue.empty()) {
-		//log("Processing msg queue");
 		Response response = msg_queue.front();
 
 		if (response.type == REPLY) {
 			client_output(response.content);
+
+			if (response.status == OK) {
+				set_state(Client::State::OPEN);
+			}
 		}
 		else {
 			process_msg(response);
@@ -126,7 +128,7 @@ int Client::client_run() {
 		return PROTOCOL_ERROR;
 	}
 
-	/* POLLING to avoid BLOCKING */
+	/* POLLING to avoid BLOCKING I/O operations */
 	struct pollfd pfds[2] = {{STDIN_FILENO, POLLIN, 0}, {protocol->get_socket(), POLLIN, 0}};
 	int timeout = -1; // Endless
 
@@ -147,12 +149,14 @@ int Client::client_run() {
 		/* STDIN ready --> Command */
 		if (pfds[0].revents & POLLIN) {
 			std::getline(std::cin, input);
-		
+			
+			/* EOF reached --> exit */
 			if (std::cin.eof()) {
 				terminate = 1;
 				set_state(State::END);
 			}
 
+			/* Input is not empty */
 			if(!input.empty()) {
 				auto cmd = get_command(input);
 				
@@ -163,25 +167,34 @@ int Client::client_run() {
 
 				/* Execute command routine */
 				if (cmd->execute(*this)) {
-					local_error("command-action unsuccessful");
+					local_error("Command action unsuccessful");
 					return CLIENT_ERROR;
 				}
+
+				/* Proccess message queue after finishing command */
+				process_msg_queue();
 			}
 		}
 
-		/* Proccess message queue after finishing command */
-		process_msg_queue();
-
 		/* Socket POLLIN */
 		if (pfds[1].revents & POLLIN) {
-			if (protocol->receive() || protocol->process(response)) {
-				local_error("Message could not be received or processed");
-
-				protocol->error(factory.create_err_msg(get_name(), "Received a malformed message from the server"));
-
+			/* Receive the message from the socket */
+			if (protocol->receive()) {
+				local_error("Message could not be received");
+				
 				return CLIENT_ERROR;
 			}
 
+			/* Process and parse the message  */
+			if (protocol->process(response)) {
+				local_error("Message could not be processed");
+				
+				protocol->error(factory.create_err_msg(get_name(), "Received a malformed message from the server"));
+				
+				return CLIENT_ERROR;
+			}
+
+			/* Process and handle the message */
 			process_msg(response);
 		}
 	}

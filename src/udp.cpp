@@ -51,7 +51,7 @@ int UDP::direct_send(std::string msg) {
 /* UDP retry send */
 int UDP::send(std::string msg) {
 	int retransmission = UDP::retransmission, await_result;
-	Response response = {};
+	Response response = {.type = UNKNOWN, .status = NONE, .duplicate = false};
 	bind_msg_id(msg, message_id);
 
 	do {
@@ -59,20 +59,15 @@ int UDP::send(std::string msg) {
 			return NETWORK_ERROR;
 		}
 
-		if ((await_result = await_response(udp_timeout, MsgType::CONFIRM, response)) == SUCCESS) {
-			//log("[UDP] confirmed");
+		if ((await_result = await_response(udp_timeout, MsgType::CONFIRM, response)) != TIMEOUT) {
+			// Response or error
 			break;
 		}
-
 	} while(retransmission--);
-
-	if (await_result != SUCCESS) {
-		return NETWORK_ERROR;
-	}
 
 	++message_id;
 
-	return SUCCESS;
+	return await_result;
 }
 
 /* UDP receive */
@@ -153,20 +148,21 @@ int UDP::process(Response& response) {
 		if (confirm(server_msg_id)) {
 			return NETWORK_ERROR;
 		}
+
 		/* This message has already been processed */
-		if (server_msg_id <= processed_msg_id) {
+		if (msg_set.count(server_msg_id)) {
 			response.duplicate = true;
-			//log("Duplicate detected");
 			return SUCCESS;
 		}
 
-		processed_msg_id = server_msg_id;
+		msg_set.insert(server_msg_id);
 	}
 
 	switch (msg_type) {
 		case CONFIRM: { //log("CONFIRM");
 			ref_message_id = get_msg_id(buffer + 1);
 
+			/* Reference msg id must correspond to client side sent msg id */
 			if (ref_message_id != message_id) {
 				local_error("Confirm response to invalid client message ID");
 				return PROTOCOL_ERROR;
@@ -180,8 +176,15 @@ int UDP::process(Response& response) {
 			int result = buffer[3];
 			ref_message_id = get_msg_id(buffer + 4);
 
+			/* Atleast 5 bytes must be received for REPLY to be valid */
 			if (b_rx < 5 || result < 0 || result > 1) {
 				local_error("Invalid reply result or integrity");
+				return PROTOCOL_ERROR;
+			}
+
+			/* Reference msg id must correspond to client side sent msg id */
+			if (ref_message_id != (message_id - 1)) { // (message id - 1) because the variable is incremented after each sucessful send()
+				local_error("Reply to invalid client message ID");
 				return PROTOCOL_ERROR;
 			}
 

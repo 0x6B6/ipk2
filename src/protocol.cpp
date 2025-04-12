@@ -30,7 +30,6 @@ Protocol::Protocol(Config& config) : protocol_type{config.protocol}, socket_fd{-
 		socket_type = SOCK_DGRAM;
 	}
 
-	processed_msg_id = -1;
 	std::memset(&server_address, 0, sizeof(server_address));
 	std::memset(buffer, 0, sizeof(buffer));
 }
@@ -158,16 +157,23 @@ int Protocol::await_response(uint16_t timeout, int expected, Response& response)
 
 		if (ready < 0 && errno != EINTR) {
 			local_error("poll() failure");
-			return NETWORK_ERROR;
+			return GENERAL_ERROR;
 		}
 
 		if (ready == 0) {
-			return TIMEOUT_ERROR;
+			return TIMEOUT;
 		}
 
 		if (pfd.revents & POLLIN) {
-			if (receive() || process(response)) {
-				local_error("Await: Message could not be received or processed");
+			/* Receive from the socket */
+			if (receive()) {
+				local_error("Await - receive()");
+				return NETWORK_ERROR;
+			}
+
+			/* Process and parse the message */
+			if (process(response)) {
+				local_error("Await - process()");
 				return PROTOCOL_ERROR;
 			}
 
@@ -176,14 +182,15 @@ int Protocol::await_response(uint16_t timeout, int expected, Response& response)
 				continue;
 			}
 
+			/* Buffer the message to process later, if needed */
 			msg_queue.push(response);
 
-			/* Response successfuly arrived */
+			/* Expected response successfuly arrived */
 			if (response.type == expected) {
 				break;
 			}
 
-			/* If message requires it, gracefuly exit */
+			/* If the message requires it, gracefuly exit */
 			if (response.type == ERR || response.type == BYE) {
 				break;
 			}
