@@ -3,7 +3,7 @@
 #include "message.hpp"
 #include "error.hpp"
 
-#include <asm-generic/socket.h>
+#include <cctype>
 #include <cerrno>
 #include <cstdio>
 #include <iostream>
@@ -75,10 +75,10 @@ int TCP::process(Response& response) {
 	msgs >> msg_type;
 
 	/* ERR FROM {DisplayName} IS {MessageContent}\r\n */
-	if (msg_type == "ERR") {
+	if (str_up(msg_type) == "ERR") {
 		msgs >> component;
 
-		if (component != "FROM") {
+		if (str_up(component) != "FROM") {
 			return 1;
 		}
 
@@ -90,7 +90,7 @@ int TCP::process(Response& response) {
 
 		msgs >> component;
 
-		if (component != "IS") {
+		if (str_up(component) != "IS") {
 			return 1;
 		}
 
@@ -102,12 +102,12 @@ int TCP::process(Response& response) {
 		response.type = MsgType::ERR;
 	}
 	/* REPLY {"OK"|"NOK"} IS {MessageContent}\r\n */
-	else if (msg_type == "REPLY") {
+	else if (str_up(msg_type) == "REPLY") {
 		msgs >> status; // OK | NOK
 
 		msgs >> component; // IS
 
-		if (component != "IS") {
+		if (str_up(component) != "IS") {
 			return 1;
 		}
 
@@ -115,11 +115,11 @@ int TCP::process(Response& response) {
 			return 1;
 		}
 
-		if (status == "OK") {
+		if (str_up(status) == "OK") {
 			response.status = ResponseStatus::OK;
 			response.content = "Action Success: " + msg_content;
 		}
-		else if (status == "NOK") {
+		else if (str_up(status) == "NOK") {
 			response.status = ResponseStatus::NOK;
 			response.content = "Action Failure: " + msg_content;
 		}
@@ -130,10 +130,10 @@ int TCP::process(Response& response) {
 		response.type = MsgType::REPLY;
 	}
 	/* MSG FROM {DisplayName} IS {MessageContent}\r\n */
-	else if (msg_type == "MSG") {
+	else if (str_up(msg_type) == "MSG") {
 		msgs >> component;
 
-		if (component != "FROM") {
+		if (str_up(component) != "FROM") {
 			return 1;
 		}
 
@@ -145,7 +145,7 @@ int TCP::process(Response& response) {
 
 		msgs >> component;
 
-		if (component != "IS") {
+		if (str_up(component) != "IS") {
 			return 1;
 		}
 
@@ -157,11 +157,11 @@ int TCP::process(Response& response) {
 		response.type = MsgType::MSG;
 	}
 	/* BYE FROM {DisplayName}\r\n */
-	else if (msg_type == "BYE") {
+	else if (str_up(msg_type) == "BYE") {
 
 		msgs >> component;
 
-		if (component != "FROM") {
+		if (str_up(component) != "FROM") {
 			return 1;
 		}
 
