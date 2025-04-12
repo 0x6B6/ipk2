@@ -71,7 +71,7 @@ int TCP::process(Response& response) {
 	std::istringstream msgs(msg);					// message string stream
 	std::string msg_type, component;				// Message type & tokens
 	std::string dname, status, msg_content, error;	// Message content
-
+	// segmentation logic here
 	msgs >> msg_type;
 
 	/* ERR FROM {DisplayName} IS {MessageContent}\r\n */

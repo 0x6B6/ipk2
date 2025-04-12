@@ -186,7 +186,7 @@ int Client::client_run() {
 		}
 	}
 
-	/* Disconnect logic here */
+	/* Disconnect logic on terminate signal (CTRL + (C | D)) */
 	if (terminate) {
 		if (protocol->disconnect(get_name())) {
 			return CLIENT_ERROR;

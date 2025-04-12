@@ -125,7 +125,13 @@ std::unique_ptr<Command> get_command(std::string input) {
 	}
 	else {
 		if (valid_printable_msg(input) == false) {
+			local_error("Invalid chat message contents");
 			return nullptr;
+		}
+
+		if (input.length() > MAX_MSG_LEN) {
+			local_error("Chat message exceeds the 60 000 character limit - message will be truncated");
+			input = input.substr(0, MAX_MSG_LEN);
 		}
 
 		command = std::make_unique<MsgCommand>(input);
