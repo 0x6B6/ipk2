@@ -132,7 +132,7 @@ int get_msg_content(char* msg_bp, std::string& content) {
 	return SUCCESS;
 }
 
-/* Process response message */
+/* UDP message parse and process function */
 int UDP::process(Response& response) {
 	uint8_t msg_type;
 	uint16_t ref_message_id, server_msg_id;
@@ -144,6 +144,7 @@ int UDP::process(Response& response) {
 		return PROTOCOL_ERROR;
 	}
 
+	/* Get message type and ID */
 	msg_type = buffer[0];
 	server_msg_id = get_msg_id(buffer + 1);
 
@@ -158,12 +159,17 @@ int UDP::process(Response& response) {
 			response.duplicate = true;
 			return SUCCESS;
 		}
+		else {
+			response.duplicate = false;
+		}
 
+		/* Insert into a set of processed unique msg IDs */
 		msg_set.insert(server_msg_id);
 	}
 
 	switch (msg_type) {
-		case CONFIRM: { //log("CONFIRM");
+		case CONFIRM: {
+			/* Get reference message id */
 			ref_message_id = get_msg_id(buffer + 1);
 
 			/* Reference msg id must correspond to client side sent msg id */
@@ -176,8 +182,11 @@ int UDP::process(Response& response) {
 			break;
 		}
 
-		case REPLY: { //log("REPLY");
+		case REPLY: {
+			/* Get reply result - OK | NOK */
 			int result = buffer[3];
+
+			/* Get reference message id */
 			ref_message_id = get_msg_id(buffer + 4);
 
 			/* Atleast 5 bytes must be received for REPLY to be valid */
@@ -202,7 +211,7 @@ int UDP::process(Response& response) {
 			break;
 		}
 
-		case MSG: { //log("MSG");
+		case MSG: {
 			if (get_msg_content(buffer + 3, msg_content)) {
 				return MESSAGE_ERROR;
 			}
@@ -212,37 +221,41 @@ int UDP::process(Response& response) {
 			break;
 		}
 
-		case ERR: { //log("ERR");
+		case ERR: {
 			if (get_msg_content(buffer + 3, msg_content)) {
 				return MESSAGE_ERROR;
 			}
 
-			response.content = msg_content;
+			response.content = "ERROR FROM " + msg_content;
 			response.type = ERR;
 			break;
 		}
 
-		case BYE: { //log("BYE");
+		case BYE: {
 			response.type = BYE;
+
 			break;
 		}
 
-		case PING: { //log("PING");
+		case PING: {
 			response.type = PING;
+
 			break;
 		}
 
-		default: { //log("INVALID MESSAGE TYPE");
+		default: {
 			local_error("Invalid UDP server message: " + std::to_string(msg_type));
+
 			response.type = UNKNOWN;
-			break;
+
+			return MESSAGE_ERROR;
 		}
 	}
 
 	return SUCCESS;
 }
 
-/* UDP error */
+/* UDP error function - sends ERR msg to server */
 int UDP::error(std::string error) {
 	if (send(error)) {
 		return PROTOCOL_ERROR;
@@ -251,7 +264,7 @@ int UDP::error(std::string error) {
 	return SUCCESS;
 }
 
-/* UDP bye */
+/* UDP disconnect function - sends BYE msg to server */
 int UDP::disconnect(std::string id) {
 	if (send(msg_factory->create_bye_msg(id))) {
 		return PROTOCOL_ERROR;
@@ -260,7 +273,7 @@ int UDP::disconnect(std::string id) {
 	return SUCCESS;
 }
 
-/* UDP confirm, TODO move partialy to msg factory */
+/* UDP message confirmation - directly send a CONFIRM message to server  */
 int UDP::confirm(uint16_t message_id) {
 	std::string confirm_msg = {MsgType::CONFIRM, 0, 0};
 

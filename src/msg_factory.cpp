@@ -2,9 +2,6 @@
 #include "message.hpp"
 #include <cstdint>
 
-/* Every TCP message must be followed by CRLF */
-constexpr const char* CRLF = "\r\n";
-
 /**
  *	TCP Messages
  */

@@ -199,6 +199,10 @@ int Client::client_run() {
 				return CLIENT_ERROR;
 			}
 
+			if (response.duplicate || response.incomplete) {
+				continue;
+			}
+
 			/* Process and handle the message */
 			process_msg(response);
 		}

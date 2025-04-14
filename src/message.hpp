@@ -25,10 +25,11 @@ enum ResponseStatus : uint8_t {
 
 /* Response message container struct */
 struct Response {
-	MsgType type;           // Message type
-	ResponseStatus status;  // Response status, if it has any
-	std::string content;    // Formated content of the message
-	bool duplicate;         // Flag for duplicate message
+	MsgType type = UNKNOWN;       // Message type
+	ResponseStatus status = NONE; // Response status, if it has any
+	std::string content;          // Formated content of the message
+	bool duplicate = false;       // Flag for duplicate message
+	bool incomplete = false;      // Flag for incomplete message when segmentation occurrs
 };
 
 /* Maximum length of parameters */
@@ -37,6 +38,9 @@ inline constexpr int MAX_CID_LEN = 20;     // Channel ID - 20 bytes
 inline constexpr int MAX_SECRET_LEN = 128; // Secret - 128 bytes
 inline constexpr int MAX_DN_LEN = 20;      // Display name - 20 bytes
 inline constexpr int MAX_MSG_LEN = 60000;  // Message - 60 000 bytes
+
+/* Every TCP message must be followed by CRLF */
+constexpr const char* CRLF = "\r\n";
 
 /* Message validation helper functions */
 bool valid_char(std::string string);

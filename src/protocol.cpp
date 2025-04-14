@@ -174,7 +174,7 @@ int Protocol::await_response(uint16_t timeout, int expected, Response& response)
 			}
 
 			/* Duplicate msg --> skip */
-			if (response.duplicate) {
+			if (response.duplicate || response.incomplete) {
 				continue;
 			}
 
