@@ -22,7 +22,7 @@
 #include <poll.h>
 
 Protocol::Protocol(Config& config) : protocol_type{config.protocol}, socket_fd{-1}, dyn_port{config.server_port},
-	client_r{nullptr}, b_rx{0} {
+	b_rx{0} {
 	if (protocol_type == Config::Protocol::TCP) {
 		socket_type = SOCK_STREAM;
 	}
@@ -84,10 +84,6 @@ MsgFactory& Protocol::get_msg_factory() {
 
 std::queue<Response>& Protocol::get_msg_queue() {
 	return msg_queue;
-}
-
-void Protocol::bind_client(Client* ptr) {
-	client_r = ptr;
 }
 
 int Protocol::create_socket() {

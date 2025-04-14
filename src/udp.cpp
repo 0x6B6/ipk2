@@ -67,6 +67,10 @@ int UDP::send(std::string msg) {
 
 	++message_id;
 
+	if (response.type == ERR || response.type == BYE) {
+		return SERVER_EXIT;
+	}
+
 	return await_result;
 }
 

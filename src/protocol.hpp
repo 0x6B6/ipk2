@@ -47,7 +47,6 @@ class Protocol {
 	protected:
 		/* Type of used protocol */
 		Config::Protocol protocol_type;
-		Client* client_r;
 
 		/* Message factory */
 		std::unique_ptr<MsgFactory> msg_factory;

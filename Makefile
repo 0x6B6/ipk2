@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = -std=c++17 #-Wall -Wextra 
 
-TARGET = ipk25-chat
+TARGET = ipk25chat-client
 
 all: $(TARGET)
 	@echo "Project compiled succesfully!"

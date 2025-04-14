@@ -176,29 +176,37 @@ int AuthCommand::execute(Client& client) {
 	Protocol& p = client.get_protocol();
 	MsgFactory& f = p.get_msg_factory();
 	Response response = {.type = UNKNOWN, .status = NONE, .duplicate = false};
+	int result = SUCCESS;
 
 	if (client.get_state() != Client::State::OPEN) {
 		client.set_name(display_name);
 
-		if (p.send(f.create_auth_msg(username, display_name, secret))) {
+		if ((result = p.send(f.create_auth_msg(username, display_name, secret)))) {
+			/* Handle server exit message later */
+			if (result == SERVER_EXIT) {
+				return SUCCESS;
+			}
+
 			local_error("send() - Unable to reach server");	
 			
-			return NETWORK_ERROR;
+			return result;
 		}
 
-		if (p.await_response(5000, MsgType::REPLY, response)) {
+		if ((result = p.await_response(5000, MsgType::REPLY, response))) {
 			local_error("Invalid message, format or response timeout");
+
+			if (result == TIMEOUT) {
+				return PROTOCOL_ERROR;
+			}
 			
-			p.error(f.create_err_msg(client.get_name(), "Malformed message or response timeout"));
-			
-			return PROTOCOL_ERROR;
+			return result;
 		}
 	}
 	else {
 		local_error("Already authenthicated");
 	}
 
-	return EXIT_SUCCESS;
+	return SUCCESS;
 }
 
 /* JOIN /join command */
@@ -206,54 +214,72 @@ int JoinCommand::execute(Client& client) {
 	Protocol& p = client.get_protocol();
 	MsgFactory& f = p.get_msg_factory();
 	Response response = {.type = UNKNOWN, .status = NONE, .duplicate = false};
+	int result = SUCCESS;
 
 	if (client.get_state() == Client::State::OPEN) {
-		if (p.send(f.create_join_msg(channel_id, client.get_name()))) {
+		if ((result = p.send(f.create_join_msg(channel_id, client.get_name())))) {
+			/* Handle server exit message later */
+			if (result == SERVER_EXIT) {
+				return SUCCESS;
+			}
+
 			local_error("send() - Unable to reach server");	
-			return NETWORK_ERROR;
+
+			return result;
 		}
 
-		if (p.await_response(5000, MsgType::REPLY, response)) {
+		if ((result = p.await_response(5000, MsgType::REPLY, response))) {
 			local_error("Invalid message, format or response timeout");
-			p.error(f.create_err_msg(client.get_name(), "Malformed message or response timeout"));
-			return PROTOCOL_ERROR;
+
+			if (result == TIMEOUT) {
+				return PROTOCOL_ERROR;
+			}
+
+			return result;
 		}
 	}
 	else {
 		local_error("Authentication required to join a channel.");
 	}
 
-	return EXIT_SUCCESS;
+	return SUCCESS;
 }
 
 /* RENAME /rename command */
 int RenameCommand::execute(Client& client) {
 	client.set_name(display_name);
 
-	return EXIT_SUCCESS;
+	return SUCCESS;
 }
 
 /* HELP /help command */
 int HelpCommand::execute(Client& client) {
 	client.help();
 	
-	return EXIT_SUCCESS;
+	return SUCCESS;
 }
 
 /* MSG standard chat message */
 int MsgCommand::execute(Client& client) {
 	Protocol& p = client.get_protocol();
 	MsgFactory& f = p.get_msg_factory();
+	int result = SUCCESS;
 
 	if (client.get_state() == Client::State::OPEN) {
-		if (p.send(f.create_chat_msg(client.get_name(), message))) {
+		if ((result = p.send(f.create_chat_msg(client.get_name(), message)))) {
+			/* Handle server exit message later */
+			if (result == SERVER_EXIT) {
+				return SUCCESS;
+			}
+
 			local_error("send() - Unable to reach server");	
-			return NETWORK_ERROR;
+
+			return result;
 		}
 	}
 	else {
 		local_error("Authentication required to send chat messages");
 	}
 
-	return EXIT_SUCCESS;
+	return SUCCESS;
 }

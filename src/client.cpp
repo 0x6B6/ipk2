@@ -119,9 +119,6 @@ int Client::client_run() {
 		return CLIENT_ERROR;
 	}
 
-	/* Bind client referrence to protocol */
-	protocol->bind_client(this);
-
 	/* Connect to server */
 	if (protocol->connect()) {
 		local_error("Connection failed");
@@ -132,6 +129,7 @@ int Client::client_run() {
 	struct pollfd pfds[2] = {{STDIN_FILENO, POLLIN, 0}, {protocol->get_socket(), POLLIN, 0}};
 	int timeout = -1; // Endless
 
+	int result = SUCCESS;
 	std::string input = "";
 	Response response;
 	MsgFactory& factory = protocol->get_msg_factory();
@@ -154,6 +152,7 @@ int Client::client_run() {
 			if (std::cin.eof()) {
 				terminate = 1;
 				set_state(State::END);
+				break;
 			}
 
 			/* Input is not empty */
@@ -166,8 +165,14 @@ int Client::client_run() {
 				}
 
 				/* Execute command routine */
-				if (cmd->execute(*this)) {
+				if ((result = cmd->execute(*this))) {
 					local_error("Command action unsuccessful");
+					
+					/* Send ERR message to the server, if an error at the application protocol level occurred */
+					if (result == PROTOCOL_ERROR) {
+						protocol->error(factory.create_err_msg(get_name(), "Malformed message"));
+					}
+
 					return CLIENT_ERROR;
 				}
 
@@ -204,6 +209,10 @@ int Client::client_run() {
 		if (protocol->disconnect(get_name())) {
 			return CLIENT_ERROR;
 		}
+	}
+
+	if (get_state() == State::ERR) {
+		return CLIENT_ERROR;
 	}
 
 	return SUCCESS;

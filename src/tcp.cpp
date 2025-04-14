@@ -20,11 +20,10 @@ TCP::~TCP() {
 int TCP::connect() {	
 	if (::connect(socket_fd, (struct sockaddr *) &server_address, sizeof(server_address)) != 0 && errno != EINPROGRESS) {
 		local_error("TCP connect()");
-		exit(1);
-		return 1;
+		return NETWORK_ERROR;
 	}
 
-	return 0;
+	return SUCCESS;
 }
 
 int TCP::send(std::string msg) {
@@ -32,10 +31,10 @@ int TCP::send(std::string msg) {
 
 	if (b_tx < 0) {
 		local_error("TCP send()");
-		return 1;
+		return NETWORK_ERROR;
 	}
 
-	return 0;
+	return SUCCESS;
 }
 
 int TCP::receive() {
@@ -43,10 +42,10 @@ int TCP::receive() {
 
 	if (b_rx <= 0) {
 		local_error("TCP receive()");
-		return 1;
+		return NETWORK_ERROR;
 	}
 
-	return 0;
+	return SUCCESS;
 }
 
 int get_msg_content(std::istringstream& msgs, std::string& msg_content) {
@@ -60,10 +59,10 @@ int get_msg_content(std::istringstream& msgs, std::string& msg_content) {
 
 	if (msg_content.empty() || valid_printable_msg(msg_content) == false) {
 		local_error("Message contains invalid characters");
-		return 1;
+		return MESSAGE_ERROR;
 	}
 
-	return 0;
+	return SUCCESS;
 }
 
 int TCP::process(Response& response) {
@@ -79,23 +78,23 @@ int TCP::process(Response& response) {
 		msgs >> component;
 
 		if (str_up(component) != "FROM") {
-			return 1;
+			return MESSAGE_ERROR;
 		}
 
 		msgs >> dname;
 
 		if (dname.empty() || valid_printable(dname) == false) {
-			return 1;
+			return MESSAGE_ERROR;
 		}
 
 		msgs >> component;
 
 		if (str_up(component) != "IS") {
-			return 1;
+			return MESSAGE_ERROR;
 		}
 
 		if (get_msg_content(msgs, msg_content)) {
-			return 1;
+			return MESSAGE_ERROR;
 		}
 
 		response.content = "ERROR FROM " + dname + ": " + msg_content;
@@ -108,11 +107,11 @@ int TCP::process(Response& response) {
 		msgs >> component; // IS
 
 		if (str_up(component) != "IS") {
-			return 1;
+			return MESSAGE_ERROR;
 		}
 
 		if (get_msg_content(msgs, msg_content)) {
-			return 1;
+			return MESSAGE_ERROR;
 		}
 
 		if (str_up(status) == "OK") {
@@ -124,7 +123,7 @@ int TCP::process(Response& response) {
 			response.content = "Action Failure: " + msg_content;
 		}
 		else {
-			return 1;
+			return MESSAGE_ERROR;
 		}
 
 		response.type = MsgType::REPLY;
@@ -134,23 +133,23 @@ int TCP::process(Response& response) {
 		msgs >> component;
 
 		if (str_up(component) != "FROM") {
-			return 1;
+			return MESSAGE_ERROR;
 		}
 
 		msgs >> dname;
 
 		if (dname.empty() || valid_printable(dname) == false) {
-			return 1;
+			return MESSAGE_ERROR;
 		}
 
 		msgs >> component;
 
 		if (str_up(component) != "IS") {
-			return 1;
+			return MESSAGE_ERROR;
 		}
 
 		if (get_msg_content(msgs, msg_content)) {
-			return 1;
+			return MESSAGE_ERROR;
 		}
 
 		response.content = dname + ": " + msg_content;
@@ -162,13 +161,13 @@ int TCP::process(Response& response) {
 		msgs >> component;
 
 		if (str_up(component) != "FROM") {
-			return 1;
+			return MESSAGE_ERROR;
 		}
 
 		msgs >> dname;
 
 		if (dname.empty() || valid_printable(dname) == false) {
-			return 1;
+			return MESSAGE_ERROR;
 		}
 
 		response.type = MsgType::BYE;
@@ -178,21 +177,21 @@ int TCP::process(Response& response) {
 		return MESSAGE_ERROR;
 	}
 
-	return 0;
+	return SUCCESS;
 }
 
 int TCP::error(std::string error) {
 	if (send(error)) {
-		return 1;
+		return NETWORK_ERROR;
 	}
 
-	return 0;
+	return SUCCESS;
 }
 
 int TCP::disconnect(std::string id) {
 	if (send(msg_factory->create_bye_msg(id))) {
-		return 1;
+		return NETWORK_ERROR;
 	}
 
-	return 0;
+	return SUCCESS;
 }
