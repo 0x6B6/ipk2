@@ -21,6 +21,7 @@
 #include <netdb.h>
 #include <poll.h>
 
+/* Generic transport protocol constructor  */
 Protocol::Protocol(Config& config) : protocol_type{config.protocol}, socket_fd{-1}, dyn_port{config.server_port},
 	b_rx{0} {
 	if (protocol_type == Config::Protocol::TCP) {
@@ -34,10 +35,12 @@ Protocol::Protocol(Config& config) : protocol_type{config.protocol}, socket_fd{-
 	std::memset(buffer, 0, sizeof(buffer));
 }
 
+/* Transport protocol destructor - closes socket */
 Protocol::~Protocol() {
 	close(socket_fd);
 }
 
+/* Static protocol setup function */
 std::unique_ptr<Protocol> Protocol::protocol_setup(Config& config) {
 	std::unique_ptr<Protocol> protocol;
 
@@ -78,14 +81,17 @@ std::unique_ptr<Protocol> Protocol::protocol_setup(Config& config) {
 	return protocol;
 }
 
+/* Getter function - returns ref to msg_factory */
 MsgFactory& Protocol::get_msg_factory() {
 	return *msg_factory.get();
 }
 
+/* Getter function - returns ref to msg_queue */
 std::queue<Response>& Protocol::get_msg_queue() {
 	return msg_queue;
 }
 
+/* Create a non-blocking socket */
 int Protocol::create_socket() {
 	/* Create socket */
 	int fd = socket(AF_INET, socket_type, 0);
@@ -109,6 +115,7 @@ int Protocol::create_socket() {
 	return 0;
 }
 
+/* Get server (host) IPv4 sockaddr_in address */
 int Protocol::get_address(const char* ip_hname) {
 	struct addrinfo *addrinfo, hints{};
 
@@ -129,14 +136,16 @@ int Protocol::get_address(const char* ip_hname) {
 	return 0;
 }
 
+/* Getter function - returns socket */
 int Protocol::get_socket() {
 	return socket_fd;
 }
 
+/* tostring function - prints current protocol info to stderr */
 void Protocol::to_string() {
 	std::string prot = protocol_type == Config::Protocol::TCP ? "tcp" : "udp";
 
-	std::cout 	<< "\033[4mIPK25-CHAT Protocol\033[0m\n"
+	std::cerr 	<< "\033[4mIPK25-CHAT Protocol\033[0m\n"
 				<< "Transport protocol: " << prot << "\n"
 				<< "Server: " << inet_ntoa(server_address.sin_addr) << ":" << ntohs(server_address.sin_port) << "\n"
 				<< "Dynamic port: " << dyn_port << "\n"
@@ -145,6 +154,7 @@ void Protocol::to_string() {
 				<< std::endl;
 }
 
+/* await function - waits for a given time interval for a concrete message */
 int Protocol::await_response(uint16_t timeout, int expected, Response& response) {
 	struct pollfd pfd = {socket_fd, POLLIN, 0};
 	

@@ -5,9 +5,9 @@
 
 volatile sig_atomic_t terminate;
 
+/* Signal handler function */
 void catch_signal(int signal) {
 	terminate = 1;
-	//log("CTRL + C --> ");
 }
 
 /* SIGINT catch setup
