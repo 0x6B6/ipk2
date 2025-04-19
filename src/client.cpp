@@ -11,6 +11,7 @@
 #include <csignal>
 #include <poll.h>
 #include <string>
+#include <sys/poll.h>
 #include <unistd.h>
 
 Client::Client(std::unique_ptr<Protocol> protocol)
@@ -145,7 +146,7 @@ int Client::client_run() {
 		}
 
 		/* STDIN ready --> Command */
-		if (pfds[0].revents & POLLIN) {
+		if (pfds[0].revents & (POLLIN | POLLHUP)) {
 			std::getline(std::cin, input);
 			
 			/* EOF reached --> exit */
