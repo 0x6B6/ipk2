@@ -91,7 +91,11 @@ To better understand the diagram
 - Red color indicates structure
 - Blue color indicates interface or abstract class
 
+### Finite state machine
 
+A simple finite state machine, illustrating client control based on the type of messages sent or received.
+
+![Design](img/fsm.svg)
 
 ### Implementation
 
