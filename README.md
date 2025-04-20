@@ -157,6 +157,33 @@ When sending messages, the `msg_factory` interface is being utilized, which cont
 
 ## Testing
 
+#### Testing devices
+- Desktop PC with ethernet cable connection (eth0, ens33) (AMD Ryzen 7 5800X3D (2) @ 3.399GHz)
+- Laptop with wireless connection (wlo1) (Intel Core i5-12450H (2) @ 2.199GHz)
+
+#### Testing environment
+- OS: Ubuntu 22.04.5 LTS x86_64, Kernel: 6.8.0-52-generic, Host: VMware Virtual Platform
+- OS: Ubuntu 24.04.2 LTS x86_64, Kernel: 6.11, Host: Oracle VirtualBox 1.2
+- OS: Ubuntu 24.04.1 LTS x86_64 (reference virtual machine IPK25_Ubuntu24.ova), Kernel: 6.8.0-52-generic, Host: Oracle VirtualBox 1.2
+
+#### Network configuration
+- Network Address Translation (NAT) is enabled. 
+
+#### Testing tools used
+- netcat - Simulate communication between client and a server
+- tcpdump - Monitor network traffic
+- wireshark - Monitor network traffic
+- ping - Network connectivity diagnostics
+- valgrind: Memory leaks
+- lsof - Track file descriptors
+
+#### Test cases
+-
+-
+-
+-
+-
+
 ## License
 
 This project is licensed under the [GNU GPL-3.0](https://www.gnu.org/licenses/gpl-3.0.html)
