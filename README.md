@@ -21,7 +21,7 @@ When writing the documentation, the [Google translate](https://translate.google.
   - [Finite state machine](#finite-state-machine)
   - [Implementation](#implementation)
     - [Client](#client)
-    - [I/O handling](#i/o-handling)
+    - [I/O handling](#io-handling)
     - [Protocol](#protocol)
 - [Testing](#testing)
 - [License](#license)
