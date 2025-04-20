@@ -178,11 +178,138 @@ When sending messages, the `msg_factory` interface is being utilized, which cont
 - lsof - Track file descriptors
 
 #### Test cases
--
--
--
--
--
+- Basic communication test
+- Bye in start state
+- Error in Auth AWAIT state
+- Malformed message tests
+
+#### Basic communication test
+
+- Netcat
+```bash 
+tcp@tcp:~/ipk2$ nc -4 -C -l -v 127.0.0.1 4567
+Listening on localhost 4567
+Connection received on localhost 40270
+
+AUTH tcp AS tcp USING 123
+reply ok is Authentication sucessful!
+
+MSG FROM tcp IS Hello there!
+msg from Server is Hello back!
+
+JOIN channel-2 AS tcp
+reply nok is Join failed
+
+JOIN channel-1 AS tcp
+reply ok is Join success - changed channel to channel-1
+
+bye from server
+```
+
+- Client
+```bash 
+tcp@tcp:~/ipk2$ ./ipk25chat-client -s localhost -t tcp
+/auth tcp 123 tcp
+Action Success: Authentication sucessful!
+Hello there!
+Server: Hello back!
+/join channel-2
+Action Failure: Join failed
+/join channel-1
+Action Success: Join success - changed channel to channel-1
+```
+
+#### Bye in start state
+- Netcat
+```bash
+tcp@tcp:~/ipk2$ nc -4 -C -l -v 127.0.0.1 4567
+Listening on localhost 4567
+bye from server
+Connection received on localhost 50324
+```
+
+#### Error in Auth AWAIT state
+- Netcat
+```bash
+tcp@tcp:~/ipk2$ nc -4 -C -l -v 127.0.0.1 4567
+Listening on localhost 4567
+Connection received on localhost 51798
+AUTH tcp AS tcp USING 123
+err from server is error!
+```
+
+- Client
+```bash
+tcp@tcp:~/ipk2$ ./ipk25chat-client -s localhost -t tcp
+/auth tcp 123 tcp
+ERROR FROM server: error!
+ERROR: Client runtime
+```
+
+#### Malformed message tests
+- Netcat
+```bash
+tcp@tcp:~/ipk2$ nc -4 -l -v 127.0.0.1 4567
+Listening on localhost 4567
+Connection received on localhost 53336
+
+AUTH tcp AS tcp USING 123
+reply is ok not
+
+ERR FROM tcp IS Malformed message
+```
+
+```bash
+tcp@tcp:~/ipk2$ ./ipk25chat-client -s localhost -t tcp
+/auth tcp 123 tcp
+ERROR: Invalid message, format or response timeout
+ERROR: Command action unsuccessful
+ERROR: Client runtime
+```
+
+- Netcat
+```bash
+tcp@tcp:~/ipk2$ nc -4 -l -v 127.0.0.1 4567
+Listening on localhost 4567
+Connection received on localhost 51324
+
+AUTH tcp AS tcp USING 123
+reply ok is auth ok
+
+msg from 1234567891011121314151617181920 is boom
+ERR FROM tcp IS Received a malformed message from the server
+```
+
+- Client
+```bash
+/auth tcp 123 tcp
+Action Success: auth ok
+ERROR: Message could not be processed
+ERROR: Client runtime
+```
+
+- Netcat
+```bash
+tcp@tcp:~/ipk2$ nc -4 -l -v 127.0.0.1 4567
+Listening on localhost 4567
+Connection received on localhost 51280
+
+AUTH tcp AS tcp USING 123
+reply ok is authok
+
+msg from server is
+
+ERR FROM tcp IS Received a malformed message from the server
+```
+
+- Client
+```bash
+/auth tcp 123 tcp
+Action Success: authok
+ERROR: Message contains invalid characters
+ERROR: Message could not be processed
+ERROR: Client runtime
+```
 
 ## License
 
