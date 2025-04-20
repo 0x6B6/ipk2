@@ -43,7 +43,7 @@ int TCP::send(std::string msg) {
 
 /* TCP receive a message into a buffer */
 int TCP::receive() {
-	b_rx = recv(socket_fd, buffer + (segmentation ? offset_segment : 0), 2048, 0);
+	b_rx = recv(socket_fd, buffer + (segmentation ? offset_segment : 0), sizeof(buffer), 0);
 
 	if (b_rx <= 0) {
 		local_error("TCP receive()");
@@ -68,6 +68,11 @@ int get_msg_content(std::istringstream& msgs, std::string& msg_content) {
 		return MESSAGE_ERROR;
 	}
 
+	if (msg_content.length() > MAX_MSG_LEN) {
+		local_error("Message is too long");
+		return MESSAGE_ERROR;
+	}
+
 	return SUCCESS;
 }
 
@@ -87,17 +92,13 @@ int TCP::process(Response& response) {
 	/* Segmantation/Fragmentation protection */
 	if (crlf(msg)) {
 		segmentation = false;
-
 		response.incomplete = false;
-		
 		offset_segment = 0;
 
 	}
 	else {
 		segmentation = true;
-
 		response.incomplete = true;
-		
 		offset_segment += b_rx;
 		
 		return SUCCESS;
@@ -118,7 +119,7 @@ int TCP::process(Response& response) {
 		/* DisplayName */
 		msgs >> dname;
 
-		if (dname.empty() || valid_printable(dname) == false) {
+		if (dname.empty() || valid_printable(dname) == false || dname.length() > MAX_DN_LEN) {
 			return MESSAGE_ERROR;
 		}
 
@@ -184,7 +185,7 @@ int TCP::process(Response& response) {
 		/* DisplayName */
 		msgs >> dname;
 
-		if (dname.empty() || valid_printable(dname) == false) {
+		if (dname.empty() || valid_printable(dname) == false || dname.length() > MAX_DN_LEN) {
 			return MESSAGE_ERROR;
 		}
 
@@ -217,7 +218,7 @@ int TCP::process(Response& response) {
 		/* DisplayName */
 		msgs >> dname;
 
-		if (dname.empty() || valid_printable(dname) == false) {
+		if (dname.empty() || valid_printable(dname) == false || dname.length() > MAX_DN_LEN) {
 			return MESSAGE_ERROR;
 		}
 

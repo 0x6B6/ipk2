@@ -79,7 +79,7 @@ int UDP::receive() {
 	struct sockaddr_in src {};
 	socklen_t addr_len = sizeof(struct sockaddr_in);
 
-	b_rx = recvfrom(socket_fd, buffer, 2048, 0, (struct sockaddr *) &src, &addr_len);
+	b_rx = recvfrom(socket_fd, buffer, sizeof(buffer), 0, (struct sockaddr *) &src, &addr_len);
 
 	/* Verify IP address */
 	if (memcmp(&server_address.sin_addr, &src.sin_addr, sizeof(struct in_addr)) != 0) {
@@ -124,8 +124,13 @@ int get_msg_content(char* msg_bp, std::string& content) {
 
 	content = dname + ": " + msg_content;
 
-	if (valid_printable_msg(msg_content) == false) {
-		local_error("Message contains invalid characters");
+	if (valid_printable(dname) == false || dname.length() > MAX_DN_LEN) {
+		local_error("Display name invalid");
+		return MESSAGE_ERROR;
+	}
+
+	if (valid_printable_msg(msg_content) == false || msg_content.length() > MAX_MSG_LEN) {
+		local_error("Message content invalid");
 		return MESSAGE_ERROR;
 	}
 

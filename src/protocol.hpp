@@ -63,7 +63,7 @@ class Protocol {
 		const uint16_t timeout = 5000;
 
 		/* Receive buffer */
-		char buffer[2048];
+		char buffer[65536];
 		int b_rx;
 
 		/* Message queue */
