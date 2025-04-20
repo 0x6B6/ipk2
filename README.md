@@ -1,5 +1,6 @@
 # ipk2
 
+![Design](img/design.svg)
 
 https://refactoring.guru/design-patterns/command
 
