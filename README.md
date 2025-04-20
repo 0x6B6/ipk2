@@ -12,12 +12,11 @@ When writing the documentation, the [Google translate](https://translate.google.
 
 ### Content structure
 
-- Theory
-- Execution
-- Implementation details
-- Testing
-- License
-- Bibliography
+- [Theory](#theory)
+- [Implementation details](#implementation-details)
+- [Testing](#testing)
+- [License](#license)
+- [Bibliography](#bibliography)
 
 ## Theory
 
