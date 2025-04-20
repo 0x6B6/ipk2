@@ -13,7 +13,16 @@ When writing the documentation, the [Google translate](https://translate.google.
 ### Content structure
 
 - [Theory](#theory)
+  - [TCP](#tcp)
+  - [UDP](#udp)
 - [Implementation details](#implementation-details)
+  - [Architecture](#architecture)
+  - [Class diagram](#class-diagram)
+  - [Finite state machine](#finite-state-machine)
+  - [Implementation](#implementation)
+    - [Client](#client)
+    - [I/O handling](#i/o-handling)
+    - [Protocol](#protocol)
 - [Testing](#testing)
 - [License](#license)
 - [Bibliography](#bibliography)
