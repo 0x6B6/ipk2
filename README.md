@@ -219,6 +219,8 @@ Action Failure: Join failed
 Action Success: Join success - changed channel to channel-1
 ```
 
+![Communication test](img/wireshark1.png)
+
 #### Bye in start state
 - Netcat
 ```bash
@@ -227,6 +229,8 @@ Listening on localhost 4567
 bye from server
 Connection received on localhost 50324
 ```
+
+![Bye test](img/wireshark2.png)
 
 #### Error in Auth AWAIT state
 - Netcat
@@ -245,6 +249,8 @@ tcp@tcp:~/ipk2$ ./ipk25chat-client -s localhost -t tcp
 ERROR FROM server: error!
 ERROR: Client runtime
 ```
+
+![Await test](img/wireshark3.png)
 
 #### Malformed message tests
 - Netcat
