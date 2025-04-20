@@ -117,7 +117,7 @@ The file descriptors are the standard input (`STDIN`) and a *non-blocking networ
 
 This allows the program to respond to both user commands and incoming network data without blocking or constantly checking each source (*active waiting*), which is very uneffective and cpu consuming.
 
-#### I/O handlng
+#### I/O handling
 
 As soon as input data terminated by a `'\n'` (newline) character is prepared on `STDIN`, the entire line is read and then parsed in the static `get_command` method of the `Command` class.
 
